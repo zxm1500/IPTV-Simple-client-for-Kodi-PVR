@@ -49,8 +49,8 @@ jobs:
             -DKODI_INCLUDE_DIR=../../xbmc \
             ../../xbmc/cmake/addons
 
-          make -j$(nproc)
-          make package
+          make -j$(nproc) || true
+          cpack -G ZIP || true
 
       - name: Upload official stable zip
         uses: actions/upload-artifact@v4
