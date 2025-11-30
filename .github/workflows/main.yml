@@ -43,12 +43,12 @@ jobs:
           libtag1-dev libtiff5-dev libtinyxml2-dev libudev-dev \
           libva-dev libvdpau-dev libvorbis-dev libxml2-dev libxslt1-dev \
           libxkbcommon-dev libxrandr-dev zlib1g-dev \
-          libwayland-dev libgbm-dev libdrm-dev libinput-dev \
+          libgbm-dev libdrm-dev libinput-dev \
           libdisplay-info-dev liburiparser-dev rapidjson-dev \
           nlohmann-json3-dev flatbuffers-compiler libflatbuffers-dev libpugixml-dev \
           python3-dev libfstrcmp-dev libpcre3 libpcre3-dev libtinyxml-dev libgtest-dev libunistring-dev \
           libx11-dev libxext-dev libxrender-dev \
-          libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libavfilter-dev wayland-protocols
+          libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libavfilter-dev
           
     - name: Build addon
       run: |
@@ -63,7 +63,8 @@ jobs:
           -DPACKAGE_ZIP=1 \
           -DCMAKE_BUILD_TYPE=Release \
           -DENABLE_GBM=ON \
-          -DENABLE_WAYLAND=OFF
+          -DENABLE_WAYLAND=OFF \
+          -DENABLE_WAYLANDGL=OFF
         ninja
 
         echo "=== Search zip ==="
