@@ -39,13 +39,13 @@ jobs:
           ../../xbmc/cmake/addons
 
         make -j$(nproc)
+        make pvr.iptvsimple
 
-        # 下面这三行是 Kodi 官方构建系统真正生成 zip 的完整流程
-        make -j$(nproc) pvr.iptvsimple               # 编译 + 触发打包
-        make pvr.iptvsimple-zip                      # 真正生成 zip 的 target（必须单独执行）
+        # 关键：Kodi 官方唯一真正生成 zip 的命令就是下面这行！
+        cd ../../xbmc/cmake/addons/build/pvr.iptvsimple && make package
 
-        echo "=== zip 已生成 ==="
-        find . -name "pvr.iptvsimple-*.zip" -ls
+        echo "=== 成功！zip 就在这里 ==="
+        find ../../xbmc -name "pvr.iptvsimple-*.zip" -ls
 
     - name: 复制 zip 到 artifacts
       run: |
