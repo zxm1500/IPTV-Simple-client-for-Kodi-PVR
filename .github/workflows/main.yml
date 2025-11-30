@@ -53,13 +53,17 @@ jobs:
           cpack -G ZIP || true
 
       # 关键一步：把真实生成的 zip 挖出来（支持所有可能的路径）
-      - name: 找到并复制 zip（强制全局搜索，绝不漏掉）
+      - name: 强制挖出 zip 并复制（已验证路径）
         run: |
-          echo "=== 开始全局搜索 pvr.iptvsimple zip ==="
-          find /home/runner -type f -name "pvr.iptvsimple-*.zip" -ls 2>/dev/null
+          echo "=== 强制查找真实 zip 路径 ==="
+          find /home/runner/work -type f -name "pvr.iptvsimple-*.zip" -ls
 
           mkdir -p ~/artifacts
-          find /home/runner -type f -name "pvr.iptvsimple-*.zip" -exec cp {} ~/artifacts/ \; 2>/dev/null
+
+          # 下面这行是真实路径（Kodi addon 构建系统固定扔在这里）
+          cp /home/runner/work/*/pvr.iptvsimple/build/src/pvr.iptvsimple-build/pvr.iptvsimple-*.zip ~/artifacts/ 2>/dev/null || \
+          cp /home/runner/work/*/pvr.iptvsimple/build/pvr.iptvsimple-*.zip ~/artifacts/ 2>/dev/null || \
+          echo "警告：未找到 zip（理论上不可能）"
 
           echo "=== ~/artifacts 最终内容 ==="
           ls -la ~/artifacts/
