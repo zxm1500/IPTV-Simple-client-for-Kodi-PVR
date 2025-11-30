@@ -8,71 +8,52 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-    - name: Checkout Kodi 21 Omega
-      uses: actions/checkout@v4
-      with:
-        repository: xbmc/xbmc
-        ref: Omega
-        path: xbmc
+      # 1. Checkout Kodi
+      - name: Checkout Kodi 21 Omega
+        uses: actions/checkout@v4
+        with:
+          repository: xbmc/xbmc
+          ref: Omega
+          path: xbmc
 
-    - name: Checkout pvr.iptvsimple 21.11.0-Omega
-      uses: actions/checkout@v4
-      with:
-        repository: kodi-pvr/pvr.iptvsimple
-        ref: 21.11.0-Omega
-        path: addons/pvr.iptvsimple
+      # 2. Checkout pvr.iptvsimple
+      - name: Checkout pvr.iptvsimple 21.11.0-Omega
+        uses: actions/checkout@v4
+        with:
+          repository: kodi-pvr/pvr.iptvsimple
+          ref: 21.11.0-Omega
+          path: pvr.iptvsimple
 
-    - name: 安装依赖
-      run: |
-        sudo apt update -qq
-        sudo apt install -y autoconf automake autopoint bison flex gettext \
-          cmake curl gcc g++ git pkg-config yasm nasm \
-          meson ninja-build swig unzip ccache \
-          build-essential libtool fakeroot dpkg-dev \
-          libasound2-dev libass-dev libbluray-dev libbz2-dev \
-          libcdio-dev libcec-dev libcurl4-openssl-dev \
-          libdbus-1-dev libexiv2-dev libflac-dev libfontconfig-dev \
-          libfreetype6-dev libfribidi-dev libgcrypt20-dev \
-          libgif-dev libgl1-mesa-dev libglu1-mesa-dev \
-          libegl1-mesa-dev libgles2-mesa-dev \
-          libgnutls28-dev libgpg-error-dev libiso9660-dev \
-          libjpeg-dev liblcms2-dev liblirc-dev liblzo2-dev \
-          libmicrohttpd-dev libnfs-dev libogg-dev libpcre2-dev \
-          libplist-dev libpng-dev libpulse-dev libshairplay-dev \
-          libsmbclient-dev libspdlog-dev libsqlite3-dev libssl-dev \
-          libtag1-dev libtiff5-dev libtinyxml2-dev libudev-dev \
-          libva-dev libvdpau-dev libvorbis-dev libxml2-dev libxslt1-dev \
-          libxkbcommon-dev libxrandr-dev zlib1g-dev \
-          libgbm-dev libdrm-dev libinput-dev \
-          libdisplay-info-dev liburiparser-dev rapidjson-dev \
-          nlohmann-json3-dev flatbuffers-compiler libflatbuffers-dev libpugixml-dev \
-          python3-dev libfstrcmp-dev libpcre3 libpcre3-dev libtinyxml-dev libgtest-dev libunistring-dev \
-          libx11-dev libxext-dev libxrender-dev \
-          libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libavfilter-dev \
-          wayland-protocols libwayland-client0 libwayland-cursor0 libwaylandpp-dev
+      # 3. 安装构建依赖（最少依赖，避免找不到包）
+      - name: Install dependencies
+        run: |
+          sudo apt update -qq
+          sudo apt install -y cmake build-essential ninja-build pkg-config git
+
+      # 4. 构建 pvr.iptvsimple
+      - name: Build addon
+        run: |
+          cd pvr.iptvsimple
+          mkdir -p build && cd build
           
-    - name: Build addon
-      run: |
-        cd xbmc
-        mkdir -p build
-        cd build
+          # 官方文档方式，禁用 Wayland
+          cmake -DADDONS_TO_BUILD=pvr.iptvsimple \
+                -DADDON_SRC_PREFIX=../.. \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_INSTALL_PREFIX=../../xbmc/addons \
+                -DPACKAGE_ZIP=1 \
+                ../../xbmc/cmake/addons
+          
+          # 使用 ninja 或 make 都可以
+          ninja || make
 
-        cmake .. \
-          -GNinja \
-          -DADDONS_TO_BUILD=pvr.iptvsimple \
-          -DADDON_SRC_PREFIX=../addons \
-          -DPACKAGE_ZIP=1 \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DENABLE_GBM=ON \
-          -DENABLE_WAYLAND=OFF \
-          -DENABLE_WAYLANDGL=OFF
-        ninja
+          # 搜索生成的 zip
+          echo "=== Search zip ==="
+          find ./ -name "pvr.iptvsimple-*.zip" -ls
 
-        echo "=== Search zip ==="
-        find ./addons/build/pvr.iptvsimple -name "pvr.iptvsimple-*.zip" -ls
-
-    - name: Upload ZIP
-      uses: actions/upload-artifact@v4
-      with:
-        name: pvr.iptvsimple-Omega
-        path: xbmc/build/**/pvr.iptvsimple-*.zip
+      # 5. 上传 zip
+      - name: Upload ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: pvr.iptvsimple-Omega
+          path: pvr.iptvsimple/build/**/pvr.iptvsimple-*.zip
