@@ -20,8 +20,12 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update -qq
-          sudo apt install -y cmake build-essential ninja-build \
-                              libkodiplatform-dev libtinyxml-dev \
+          # 启用 Team Kodi PPA（针对 Ubuntu 24.04 Noble）
+          sudo add-apt-repository ppa:team-xbmc/ppa -y
+          sudo apt update -qq
+          # 安装核心构建工具 + Kodi addon 开发包（取代 libkodiplatform-dev）
+          sudo apt install -y cmake build-essential ninja-build pkg-config git \
+                              kodi-addons-dev libtinyxml-dev \
                               rapidjson-dev zlib1g-dev libcurl4-openssl-dev
 
       # 关键：使用插件自己的 CMakeLists.txt 独立构建（不是 Kodi 源码那套）
