@@ -35,22 +35,22 @@ jobs:
           sudo apt update -qq
           sudo apt install -y build-essential cmake git
 
-      - name: 编译 pvr.iptvsimple（100% 官方方式 + 强制使用 Omega 头文件）
+      - name: 编译 pvr.iptvsimple（这次不吞错误 + 正确参数）
         run: |
+          set -euo pipefail
           cd pvr.iptvsimple
           mkdir -p build && cd build
 
-          cmake ../ \
+          cmake .. \
             -DADDONS_TO_BUILD=pvr.iptvsimple \
             -DADDON_SRC_PREFIX=../.. \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX=../../xbmc/addons \
+            -DCMAKE_INSTALL_PREFIX=../../xbmc/depend \
             -DPACKAGE_ZIP=1 \
-            -DKODI_INCLUDE_DIR=../../xbmc \
             ../../xbmc/cmake/addons
 
-          make -j$(nproc) || true
-          cpack -G ZIP || true
+          make -j$(nproc)
+          cpack -G ZIP
 
       # 关键一步：把真实生成的 zip 挖出来（支持所有可能的路径）
       - name: 强制挖出 zip 并复制（已验证路径）
