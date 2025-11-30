@@ -30,22 +30,24 @@ jobs:
           ref: ${{ steps.latest_tag.outputs.tag }}
           path: pvr.iptvsimple
 
-      - name: Install build dependencies
+      - name: 安装依赖（不再装 kodi-addons-dev！）
         run: |
           sudo apt update -qq
-          sudo apt install -y build-essential cmake kodi-addons-dev
+          sudo apt install -y build-essential cmake git
 
-      - name: Build official zip
+      - name: 编译 pvr.iptvsimple（100% 官方方式 + 强制使用 Omega 头文件）
         run: |
           cd pvr.iptvsimple
-          mkdir build && cd build
+          mkdir -p build && cd build
 
           cmake ../ \
             -DADDONS_TO_BUILD=pvr.iptvsimple \
-            -DADDON_SRC_PREFIX=../.. \
-            -DCMAKE_BUILD_TYPE=Release \
+            -DDON_SRC_PREFIX=../.. \
+            -CMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX=../../xbmc/addons \
+            -DUSE_LTO=OFF \
             -DPACKAGE_ZIP=1 \
+            -DKODI_INCLUDE_DIR=../../xbmc \
             ../../xbmc/cmake/addons
 
           make -j$(nproc)
