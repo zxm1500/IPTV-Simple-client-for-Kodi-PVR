@@ -30,7 +30,7 @@ jobs:
               build-essential cmake curl default-jre \
               g++ gcc gettext git zip unzip \
               libasound2-dev libass-dev libavahi-client-dev \
-              libavahi-common-dev libbluez-dev libbluray-dev \
+              libavahi-common-dev libbluray-dev \
               libbz2-dev libcaca-dev libcap-dev \
               libcdio-dev libiso9660-dev \
               libcec-dev libcrossguid-dev libcurl4-openssl-dev \
@@ -38,7 +38,7 @@ jobs:
               libfreetype6-dev libfmt-dev \
               libfribidi-dev libgbm-dev libgl1-mesa-dev \
               libgles2-mesa-dev libglu1-mesa-dev libgtest-dev \
-              libjpeg-dev liblcms2-dev liblircclient-dev \
+              libjpeg-dev liblcms2-dev \
               liblzo2-dev libmicrohttpd-dev libnfs-dev \
               libpcre3-dev libpipewire-0.3-dev \
               libplist-dev libpng-dev libpulse-dev \
