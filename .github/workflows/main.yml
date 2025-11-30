@@ -45,7 +45,7 @@ jobs:
                 ../../xbmc/cmake/addons
           
           # 使用 ninja 或 make 都可以
-          ninja pvr.iptvsimple
+          ninja
           ninja package
       
           echo "=== Search zip ==="
@@ -57,5 +57,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pvr.iptvsimple-Omega
-          path: xbmc/build/pvr.iptvsimple/pvr.iptvsimple-*.zip
+          path: pvr.iptvsimple/build/**/pvr.iptvsimple-*.zip
 
