@@ -49,7 +49,7 @@ jobs:
           ninja
       
           echo "=== Search zip ==="
-          find . -name "pvr.iptvsimple-*.zip" -ls
+          find $(pwd) -path "*/addons/build/pvr.iptvsimple/pvr.iptvsimple-*.zip" -ls
 
 
       # 5. 上传 zip
