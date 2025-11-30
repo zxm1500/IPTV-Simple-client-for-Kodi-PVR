@@ -48,7 +48,10 @@ jobs:
               libvorbis-dev libx11-dev libxext-dev libxrandr-dev \
               libxslt1-dev libxt-dev libxmu-dev libxv-dev \
               pkg-config python3-dev python3-pil \
-              yasm zlib1g-dev nasm libgif-dev
+              yasm zlib1g-dev nasm libgif-dev flatbuffers-dev \
+              libavcodec-dev libavfilter-dev libavformat-dev \
+              libavutil-dev libswscale-dev libswresample-dev libpostproc-dev \
+              libdav1d-dev
 
 
     - name: Build addon
