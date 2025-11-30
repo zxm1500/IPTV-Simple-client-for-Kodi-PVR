@@ -49,7 +49,7 @@ jobs:
           python3-dev libfstrcmp-dev libpcre3 libpcre3-dev libtinyxml-dev libgtest-dev libunistring-dev \
           libx11-dev libxext-dev libxrender-dev \
           libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libavfilter-dev \
-          wayland-protocols libwayland-client0 libwayland-cursor0
+          wayland-protocols libwayland-client0 libwayland-cursor0 libwaylandpp-dev
           
     - name: Build addon
       run: |
