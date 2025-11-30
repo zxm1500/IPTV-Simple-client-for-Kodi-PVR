@@ -22,7 +22,7 @@ jobs:
         ref: 21.11.0-Omega
         path: addons/pvr.iptvsimple
 
-    - name: 安装依赖 + waylandpp
+    - name: 安装依赖
       run: |
         sudo apt update -qq
         sudo apt install -y autoconf automake autopoint bison flex gettext \
@@ -47,7 +47,8 @@ jobs:
           libdisplay-info-dev liburiparser-dev rapidjson-dev \
           nlohmann-json3-dev flatbuffers-compiler libflatbuffers-dev libpugixml-dev \
           python3-dev libfstrcmp-dev libpcre3 libpcre3-dev libtinyxml-dev libgtest-dev libunistring-dev \
-          libx11-dev libxext-dev libxrender-dev wayland-protocols
+          libx11-dev libxext-dev libxrender-dev \
+          libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libavfilter-dev
           
     - name: Build addon
       run: |
@@ -61,13 +62,12 @@ jobs:
           -DADDON_SRC_PREFIX=../addons \
           -DPACKAGE_ZIP=1 \
           -DCMAKE_BUILD_TYPE=Release \
-          -DENABLE_WAYLAND=OFF \
-          cmake/addons
+          -DENABLE_WAYLAND=OFF
 
         ninja
 
         echo "=== Search zip ==="
-        find . -name "pvr.iptvsimple-*.zip" -ls
+        find ./addons/build/pvr.iptvsimple -name "pvr.iptvsimple-*.zip" -ls
 
     - name: Upload ZIP
       uses: actions/upload-artifact@v4
