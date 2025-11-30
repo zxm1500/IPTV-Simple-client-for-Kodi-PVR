@@ -39,7 +39,7 @@ jobs:
           libgif-dev \
           libjpeg-dev \
           libtinyxml2-dev \
-          libuuid-dev \
+          uuid-dev \
           libcurl4-openssl-dev \
           libpugixml-dev \
           libfmt-dev \
