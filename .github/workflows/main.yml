@@ -25,25 +25,30 @@ jobs:
     - name: 安装依赖
       run: |
         sudo apt update -qq
-        sudo apt install -y \
-          build-essential \
-          cmake \
-          ninja-build \
-          git \
-          autoconf \
-          libtool \
-          pkg-config \
-          liblzo2-dev \
-          libpng-dev \
-          zlib1g-dev \
-          libgif-dev \
-          libjpeg-dev \
-          libtinyxml2-dev \
-          uuid-dev \
-          libcurl4-openssl-dev \
-          libpugixml-dev \
-          libfmt-dev \
-          libssl-dev
+        sudo apt-get install -y \
+              autoconf automake autopoint autotools-dev \
+              build-essential cmake curl default-jre \
+              g++ gcc gettext git zip unzip \
+              libasound2-dev libass-dev libavahi-client-dev \
+              libavahi-common-dev libbluez-dev libbluray-dev \
+              libbz2-dev libcaca-dev libcap-dev \
+              libcdio-dev libiso9660-dev \
+              libcec-dev libcrossguid-dev libcurl4-openssl-dev \
+              libdbus-1-dev libdrm-dev libegl1-mesa-dev \
+              libfreetype6-dev libfmt-dev \
+              libfribidi-dev libgbm-dev libgl1-mesa-dev \
+              libgles2-mesa-dev libglu1-mesa-dev libgtest-dev \
+              libjpeg-dev liblcms2-dev liblircclient-dev \
+              liblzo2-dev libmicrohttpd-dev libnfs-dev \
+              libpcre3-dev libpipewire-0.3-dev \
+              libplist-dev libpng-dev libpulse-dev \
+              libsamplerate0-dev libsmbclient-dev \
+              libsndio-dev libssl-dev libswscale-dev \
+              libtool libudev-dev libva-dev libvdpau-dev \
+              libvorbis-dev libx11-dev libxext-dev libxrandr-dev \
+              libxslt1-dev libxt-dev libxmu-dev libxv-dev \
+              pkg-config python3-dev python3-pil \
+              yasm zlib1g-dev nasm
 
 
     - name: Build addon
