@@ -48,16 +48,6 @@ jobs:
           nlohmann-json3-dev flatbuffers-compiler libflatbuffers-dev libpugixml-dev \
           python3-dev libfstrcmp-dev libpcre3 libpcre3-dev libtinyxml-dev libgtest-dev libunistring-dev \
           libx11-dev libxext-dev libxrender-dev wayland-protocols
-    
-        # 安装 waylandpp
-        curl -L https://github.com/waylandpp/waylandpp/archive/refs/tags/v0.3.tar.gz | tar xz
-        cd waylandpp-0.3
-        mkdir build && cd build
-        cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local
-        make -j$(nproc)
-        sudo make install
-        sudo ldconfig
-
           
     - name: Build addon
       run: |
@@ -71,6 +61,7 @@ jobs:
           -DADDON_SRC_PREFIX=../addons \
           -DPACKAGE_ZIP=1 \
           -DCMAKE_BUILD_TYPE=Release \
+          -DENABLE_WAYLAND=OFF \
           cmake/addons
 
         ninja
