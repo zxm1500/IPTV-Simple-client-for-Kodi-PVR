@@ -52,14 +52,26 @@ jobs:
           make -j$(nproc) || true
           cpack -G ZIP || true
 
-      - name: Upload official stable zip
+      # 关键一步：把真实生成的 zip 挖出来（支持所有可能的路径）
+      - name: 找到并复制 zip
+        run: |
+          echo "正在查找生成的 zip 文件…"
+          find . -type f -name "pvr.iptvsimple-*.zip" -ls
+  
+          mkdir -p ~/artifacts
+          find . -type f -name "pvr.iptvsimple-*.zip" -exec cp {} ~/artifacts/ \;
+  
+          echo "已复制到 artifacts：
+          ls -lh ~/artifacts/
+  
+      - name: 上传最新稳定版 zip
         uses: actions/upload-artifact@v4
         with:
-          name: pvr.iptvsimple-${{ steps.latest_tag.outputs.tag }}-zip
-          path: pvr.iptvsimple/build/pvr.iptvsimple-*.zip
+          name: pvr.iptvsimple-${{ steps.tag.outputs.tag }}-Omega
+          path: ~/artifacts/pvr.iptvsimple-*.zip
           if-no-files-found: error
-
-      - name: Done
+  
+      - name: 完成
         run: |
-          echo "构建完成！"
-          ls -lh pvr.iptvsimple/build/pvr.iptvsimple-*.zip
+          echo "成功！最新官方稳定版 addon 已打包上传"
+          ls -lh ~/artifacts/
