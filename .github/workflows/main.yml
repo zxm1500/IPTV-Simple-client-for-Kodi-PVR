@@ -61,7 +61,7 @@ jobs:
           mkdir -p ~/artifacts
           find . -type f -name "pvr.iptvsimple-*.zip" -exec cp {} ~/artifacts/ \;
   
-          echo "已复制到 artifacts：
+          echo "已复制到 artifacts："
           ls -lh ~/artifacts/
   
       - name: 上传最新稳定版 zip
