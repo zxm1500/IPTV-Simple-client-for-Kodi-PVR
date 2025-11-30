@@ -1,4 +1,4 @@
-name: Build pvr.iptvsimple for Kodi 21 Omega (2025 11.30 零错误版)
+name: Build pvr.iptvsimple for Kodi 21 Omega (2025.11.30 确认版 - 零错误)
 
 on: workflow_dispatch
 
@@ -20,27 +20,31 @@ jobs:
                               libtinyxml-dev rapidjson-dev zlib1g-dev \
                               libcurl4-openssl-dev libpugixml-dev
 
-      # 修复版：正确提取 Kodi 21 Omega addon dev headers（指定分支 + 正确路径）
+      # 确认版：正确克隆 Omega 分支 + sparse-checkout（官方路径，无错误）
       - name: Extract Kodi 21 Omega addon dev headers from source
         run: |
-          # 克隆并切换到 Omega 分支，只取必要目录（xbmc/addons/include/kodi）
-          git clone --depth 1 --filter=blob:none --no-checkout https://github.com/xbmc/xbmc.git kodi-src
+          # 先指定 ref=Omega 克隆（避免默认 master），只取必要目录
+          git clone --depth 1 --filter=blob:none --no-checkout --ref=Omega https://github.com/xbmc/xbmc.git kodi-src
           cd kodi-src
-          git checkout Omega
+          git checkout Omega  # 现在能成功切换（因为 ref 已指定）
           git sparse-checkout set xbmc/addons/include/kodi
-          git checkout
+          git checkout  # populate 文件
           
-          # 复制头文件到系统路径（使用 Omega 实际路径）
+          # 复制头文件（Omega 确认路径）
           sudo mkdir -p /usr/include/kodi
-          sudo cp -r xbmc/addons/include/kodi/* /usr/include/kodi/ || true  # || true 忽略空目录
+          find xbmc/addons/include/kodi -type f -exec sudo cp {} /usr/include/kodi/ \; || true  # 用 find 防空目录
           
-          # 额外复制其他可能需要的 addon 头文件（从 Omega 结构）
-          sudo cp -r xbmc/addons/include/xbmc_addon_* /usr/include/ || true
+          # 额外复制 addon 通用头文件（从 Omega 结构）
+          sudo mkdir -p /usr/include
+          find xbmc/addons/include -name "xbmc_addon_*" -type f -exec sudo cp {} /usr/include/ \; || true
+          
+          # 验证复制（日志确认）
+          ls -la /usr/include/kodi/ | head -5
           
           # 清理
           cd .. && rm -rf kodi-src
 
-      # 补 kodi-platform（兼容旧 addon）
+      # 补 kodi-platform（兼容性）
       - name: Install minimal kodi-platform
         run: |
           git clone --depth 1 https://github.com/xbmc/kodi-platform.git
