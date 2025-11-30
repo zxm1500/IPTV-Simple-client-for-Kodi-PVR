@@ -31,7 +31,9 @@ jobs:
           path: pvr.iptvsimple
 
       - name: Install build dependencies
-        run: sudo apt update -qq && sudo apt install -y build-essential cmake libkodi-dev
+        run: |
+          sudo apt update -qq
+          sudo apt install -y build-essential cmake kodi-dev
 
       - name: Build official zip
         run: |
