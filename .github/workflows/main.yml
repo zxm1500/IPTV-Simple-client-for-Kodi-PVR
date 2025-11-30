@@ -48,7 +48,8 @@ jobs:
           nlohmann-json3-dev flatbuffers-compiler libflatbuffers-dev libpugixml-dev \
           python3-dev libfstrcmp-dev libpcre3 libpcre3-dev libtinyxml-dev libgtest-dev libunistring-dev \
           libx11-dev libxext-dev libxrender-dev \
-          libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libavfilter-dev
+          libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libavfilter-dev wayland-protocols
+        export PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig:$PKG_CONFIG_PATH
           
     - name: Build addon
       run: |
@@ -62,7 +63,8 @@ jobs:
           -DADDON_SRC_PREFIX=../addons \
           -DPACKAGE_ZIP=1 \
           -DCMAKE_BUILD_TYPE=Release \
-          -DENABLE_WAYLAND=OFF
+          -DENABLE_GBM=ON \
+          -DENABLE_WAYLAND=ON
 
         ninja
 
