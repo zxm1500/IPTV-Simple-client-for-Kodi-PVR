@@ -49,11 +49,13 @@ jobs:
 
           # 搜索生成的 zip
           echo "=== Search zip ==="
-          find ./ -name "pvr.iptvsimple-*.zip" -ls
+          find . -name "*.zip" -ls
+
 
       # 5. 上传 zip
       - name: Upload ZIP
         uses: actions/upload-artifact@v4
         with:
           name: pvr.iptvsimple-Omega
-          path: pvr.iptvsimple/build/addons/build/**/*.zip
+          path: xbmc/build/pvr.iptvsimple/*.zip
+
