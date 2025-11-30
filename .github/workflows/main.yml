@@ -25,7 +25,7 @@ jobs:
     - name: 安装依赖
       run: sudo apt update -qq && sudo apt install -y build-essential cmake git
 
-    - name: 编译 + 生成 zip（完美兼容）
+    - name: 编译 + 生成 zip（添加 CPack 配置，解决 name not specified）
       run: |
         cd pvr.iptvsimple
         mkdir -p build && cd build
@@ -39,6 +39,14 @@ jobs:
           ../../xbmc/cmake/addons
 
         make -j$(nproc)
+
+        # 手动设置 CPack 变量（addon 构建系统缺少这些）
+        cmake -DCPACK_PROJECT_NAME=pvr.iptvsimple \
+              -DCPACK_PACKAGE_VERSION=21.3.0 \
+              -DCPACK_PACKAGE_FILE_NAME="pvr.iptvsimple-21.3.0" \
+              -DCPACK_GENERATOR=ZIP \
+              ..
+
         cpack -G ZIP
 
     - name: 复制 zip 到 artifacts
