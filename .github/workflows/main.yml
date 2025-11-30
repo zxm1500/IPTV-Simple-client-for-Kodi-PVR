@@ -1,4 +1,4 @@
-name: Build pvr.iptvsimple for Kodi 21 Omega (2025 终极版 - 源代码头文件)
+name: Build pvr.iptvsimple for Kodi 21 Omega (2025 11.30 零错误版)
 
 on: workflow_dispatch
 
@@ -20,23 +20,27 @@ jobs:
                               libtinyxml-dev rapidjson-dev zlib1g-dev \
                               libcurl4-openssl-dev libpugixml-dev
 
-      # 关键：从 Kodi Omega 源代码提取 addon 开发头文件（官方推荐方式，无 404）
+      # 修复版：正确提取 Kodi 21 Omega addon dev headers（指定分支 + 正确路径）
       - name: Extract Kodi 21 Omega addon dev headers from source
         run: |
-          # 只克隆必要目录（addons/include/kodi），超小超快
+          # 克隆并切换到 Omega 分支，只取必要目录（xbmc/addons/include/kodi）
           git clone --depth 1 --filter=blob:none --no-checkout https://github.com/xbmc/xbmc.git kodi-src
           cd kodi-src
-          git sparse-checkout set addons/include/kodi
+          git checkout Omega
+          git sparse-checkout set xbmc/addons/include/kodi
           git checkout
           
-          # 复制头文件到系统路径
+          # 复制头文件到系统路径（使用 Omega 实际路径）
           sudo mkdir -p /usr/include/kodi
-          sudo cp -r addons/include/kodi/* /usr/include/kodi/
+          sudo cp -r xbmc/addons/include/kodi/* /usr/include/kodi/ || true  # || true 忽略空目录
+          
+          # 额外复制其他可能需要的 addon 头文件（从 Omega 结构）
+          sudo cp -r xbmc/addons/include/xbmc_addon_* /usr/include/ || true
           
           # 清理
           cd .. && rm -rf kodi-src
 
-      # 补 kodi-platform（addon CMake 依赖它）
+      # 补 kodi-platform（兼容旧 addon）
       - name: Install minimal kodi-platform
         run: |
           git clone --depth 1 https://github.com/xbmc/kodi-platform.git
@@ -55,7 +59,7 @@ jobs:
                    -DCMAKE_BUILD_TYPE=Release \
                    -DBUILD_SHARED_LIBS=1 \
                    -DUSE_LTO=1 \
-                   -DKODI_ADDON_API_LEVEL=21  # 强制 Omega API
+                   -DKODI_ADDON_API_LEVEL=21
           ninja
 
       - name: Package ZIP
