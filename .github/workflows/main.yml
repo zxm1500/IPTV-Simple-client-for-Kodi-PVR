@@ -41,11 +41,10 @@ jobs:
         make -j$(nproc)
 
         # 关键：Kodi addon 真正的打包命令是这个！
-        make pvr.iptvsimple
+        make pvr.iptvsimple-package
 
-        # zip 就在这里生成
-        echo "=== 生成的 zip 文件 ==="
-        find . -name "pvr.iptvsimple-*.zip" -ls
+        echo "=== 生成的 zip ==="
+        find . -name "*.zip" -ls
 
     - name: 复制生成的 zip
       run: |
