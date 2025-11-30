@@ -14,7 +14,7 @@ jobs:
           TAG=$(curl -s https://api.github.com/repos/kodi-pvr/pvr.iptvsimple/releases/latest \
                 | jq -r '.tag_name')
           echo "Latest stable release: $TAG"
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
       - name: Checkout Kodi Omega
         uses: actions/checkout@v4
