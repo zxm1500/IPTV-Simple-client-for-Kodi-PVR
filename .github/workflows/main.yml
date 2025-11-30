@@ -33,7 +33,7 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt update -qq
-          sudo apt install -y build-essential cmake kodi-dev
+          sudo apt install -y build-essential cmake kodi-addons-dev
 
       - name: Build official zip
         run: |
