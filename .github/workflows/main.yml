@@ -42,10 +42,9 @@ jobs:
 
           cmake ../ \
             -DADDONS_TO_BUILD=pvr.iptvsimple \
-            -DDON_SRC_PREFIX=../.. \
-            -CMAKE_BUILD_TYPE=Release \
+            -DADDON_SRC_PREFIX=../.. \
+            -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX=../../xbmc/addons \
-            -DUSE_LTO=OFF \
             -DPACKAGE_ZIP=1 \
             -DKODI_INCLUDE_DIR=../../xbmc \
             ../../xbmc/cmake/addons
