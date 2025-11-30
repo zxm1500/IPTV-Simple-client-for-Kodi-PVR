@@ -65,6 +65,7 @@ jobs:
           -DCMAKE_BUILD_TYPE=Release \
           -DENABLE_GBM=ON \
           -DENABLE_WAYLAND=ON
+          -DENABLE_WAYLANDPP=OFF
 
         ninja
 
