@@ -1,78 +1,47 @@
-name: Build pvr.iptvsimple (Kodi 21 Omega)
+name: Build pvr.iptvsimple for Kodi 21 Omega
 
 on:
   workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: ubuntu-24.04
+  build-android-windows-linux:
+    strategy:
+      matrix:
+        os: [ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
 
     steps:
-    - name: Checkout Kodi 21 Omega
-      uses: actions/checkout@v4
-      with:
-        repository: xbmc/xbmc
-        ref: Omega
-        path: xbmc
+      - name: Checkout pvr.iptvsimple
+        uses: actions/checkout@v4
+        with:
+          repository: kodi-pvr/pvr.iptvsimple
+          ref: 21.11.0-Omega
 
-    - name: Checkout pvr.iptvsimple 21.11.0-Omega
-      uses: actions/checkout@v4
-      with:
-        repository: kodi-pvr/pvr.iptvsimple
-        ref: 21.11.0-Omega
-        path: addons/pvr.iptvsimple
+      - name: Install dependencies
+        run: |
+          sudo apt update -qq
+          sudo apt install -y cmake build-essential ninja-build \
+                              libkodiplatform-dev libtinyxml-dev \
+                              rapidjson-dev zlib1g-dev libcurl4-openssl-dev
 
-    - name: 安装依赖
-      run: |
-        sudo apt update -qq
-        sudo apt install -y autoconf automake autopoint bison flex gettext \
-          cmake curl gcc g++ git pkg-config yasm nasm \
-          meson ninja-build swig unzip ccache \
-          build-essential libtool fakeroot dpkg-dev \
-          libasound2-dev libass-dev libbluray-dev libbz2-dev \
-          libcdio-dev libcec-dev libcurl4-openssl-dev \
-          libdbus-1-dev libexiv2-dev libflac-dev libfontconfig-dev \
-          libfreetype6-dev libfribidi-dev libgcrypt20-dev \
-          libgif-dev libgl1-mesa-dev libglu1-mesa-dev \
-          libegl1-mesa-dev libgles2-mesa-dev \
-          libgnutls28-dev libgpg-error-dev libiso9660-dev \
-          libjpeg-dev liblcms2-dev liblirc-dev liblzo2-dev \
-          libmicrohttpd-dev libnfs-dev libogg-dev libpcre2-dev \
-          libplist-dev libpng-dev libpulse-dev libshairplay-dev \
-          libsmbclient-dev libspdlog-dev libsqlite3-dev libssl-dev \
-          libtag1-dev libtiff5-dev libtinyxml2-dev libudev-dev \
-          libva-dev libvdpau-dev libvorbis-dev libxml2-dev libxslt1-dev \
-          libxkbcommon-dev libxrandr-dev zlib1g-dev \
-          libgbm-dev libdrm-dev libinput-dev \
-          libdisplay-info-dev liburiparser-dev rapidjson-dev \
-          nlohmann-json3-dev flatbuffers-compiler libflatbuffers-dev libpugixml-dev \
-          python3-dev libfstrcmp-dev libpcre3 libpcre3-dev libtinyxml-dev libgtest-dev libunistring-dev \
-          libx11-dev libxext-dev libxrender-dev \
-          libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libavfilter-dev \
-          wayland-protocols libwayland-client0 libwayland-cursor0 libwaylandpp-dev
-          
-    - name: Build addon
-      run: |
-        cd xbmc
-        mkdir -p build
-        cd build
+      # 关键：使用插件自己的 CMakeLists.txt 独立构建（不是 Kodi 源码那套）
+      - name: Build with Ninja
+        run: |
+          mkdir build && cd build
+          cmake .. -G Ninja \
+                   -DCMAKE_BUILD_TYPE=Release \
+                   -DBUILD_SHARED_LIBS=1 \
+                   -DUSE_LTO=1
+          ninja
 
-        cmake .. \
-          -GNinja \
-          -DADDONS_TO_BUILD=pvr.iptvsimple \
-          -DADDON_SRC_PREFIX=../addons \
-          -DPACKAGE_ZIP=1 \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DENABLE_GBM=ON \
-          -DENABLE_WAYLAND=OFF \
-          -DENABLE_WAYLANDGL=OFF
-        ninja
+      # 生成 zip（官方脚本会自动把依赖写好）
+      - name: Package ZIP
+        run: |
+          cd build
+          cpack -G ZIP
 
-        echo "=== Search zip ==="
-        find ./addons/build/pvr.iptvsimple -name "pvr.iptvsimple-*.zip" -ls
-
-    - name: Upload ZIP
-      uses: actions/upload-artifact@v4
-      with:
-        name: pvr.iptvsimple-Omega
-        path: xbmc/build/**/pvr.iptvsimple-*.zip
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pvr.iptvsimple-21.11.0-Omega-${{ runner.os }}
+          path: build/pvr.iptvsimple-*.zip
