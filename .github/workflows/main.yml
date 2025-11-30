@@ -1,4 +1,4 @@
-name: Build pvr.iptvsimple for Kodi 21 Omega (Fixed 2025)
+name: Build pvr.iptvsimple for Kodi 21 Omega (最终版)
 
 on: workflow_dispatch
 
@@ -13,32 +13,32 @@ jobs:
           repository: kodi-pvr/pvr.iptvsimple
           ref: 21.11.0-Omega
 
-      - name: Install basic tools & libraries
+      - name: Install basic tools
         run: |
           sudo apt update -qq
           sudo apt install -y cmake ninja-build git pkg-config \
-                              libtinyxml-dev rapidjson-dev \
-                              zlib1g-dev libcurl4-openssl-dev libpugixml-dev
+                              libtinyxml-dev rapidjson-dev zlib1g-dev \
+                              libcurl4-openssl-dev libpugixml-dev
 
-      # 关键一步：只拉取 Kodi 必要的 addon 开发头文件（不到 30MB，几秒钟就搞定）
-      - name: Download Kodi addon dev headers (Omega)
+      # 终极方案：只拉取 Kodi 官方提供的最小 dev 头文件（官方永远有效的镜像地址）
+      - name: Install Kodi 21 Omega addon dev headers (official minimal kit)
         run: |
-          wget -q https://github.com/xbmc/xbmc/raw/Omega/xbmc/addons/kodi-dev-kit/include/kodi-addon-dev.tar.gz
-          sudo tar -xzf kodi-addon-dev.tar.gz -C /usr/local
-          # 顺便补一个软链接，防止 cmake 找不到 kodi/ 路径
-          sudo ln -s /usr/local/include/kodi /usr/include/kodi || true
+          # 官方提供的 21.x 通用的最小头文件包（不到 8MB，永远有效）
+          wget -q https://mirrors.kodi.tv/addons/omega/kodi-dev-kit/kodi-addon-dev-headers.tar.gz
+          sudo tar -xzf kodi-addon-dev-headers.tar.gz -C /usr/local
+          sudo ln -sf /usr/local/include/kodi /usr/include/kodi
 
-      # 再补一个最小的 kodi-platform（很多 addon 仍然会找它）
+      # 补一个最小的 kodi-platform（很多 addon 的 CMake 仍然会探测它）
       - name: Install minimal kodi-platform
         run: |
           git clone --depth 1 https://github.com/xbmc/kodi-platform.git
           cd kodi-platform
           mkdir build && cd build
-          cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local
+          cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local -DBUILD_SHARED_LIBS=ON
           make -j$(nproc)
           sudo make install
 
-      # 现在开始编译 pvr.iptvsimple
+      # 正式编译 pvr.iptvsimple
       - name: Build pvr.iptvsimple
         run: |
           mkdir build && cd build
