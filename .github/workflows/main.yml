@@ -22,7 +22,7 @@ jobs:
         ref: 21.11.0-Omega
         path: addons/pvr.iptvsimple
 
-    - name: 安装依赖
+    - name: 安装依赖 + waylandpp
       run: |
         sudo apt update -qq
         sudo apt install -y autoconf automake autopoint bison flex gettext \
@@ -49,18 +49,17 @@ jobs:
           python3-dev libfstrcmp-dev libpcre3 libpcre3-dev libtinyxml-dev libgtest-dev libunistring-dev \
           libx11-dev libxext-dev libxrender-dev wayland-protocols
     
-        # 下载 waylandpp
+        # 安装 waylandpp
         git clone --branch v0.3 https://github.com/waylandpp/waylandpp.git
         cd waylandpp
-    
-        # 创建 build 并安装到 /usr/local
         mkdir build && cd build
         cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local
         make -j$(nproc)
         sudo make install
+        sudo ldconfig
     
-        # 确保 pkg-config 可以找到
-        export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
+        # 设置全局环境变量，供下一步 CMake 使用
+        echo "PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH" >> $GITHUB_ENV
           
     - name: Build addon
       run: |
