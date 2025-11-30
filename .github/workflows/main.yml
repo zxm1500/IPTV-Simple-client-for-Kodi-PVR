@@ -4,11 +4,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-android-windows-linux:
-    strategy:
-      matrix:
-        os: [ubuntu-24.04]
-    runs-on: ${{ matrix.os }}
+  build:
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout pvr.iptvsimple
@@ -17,28 +14,44 @@ jobs:
           repository: kodi-pvr/pvr.iptvsimple
           ref: 21.11.0-Omega
 
-      - name: Install dependencies
+      - name: Install basic dependencies
         run: |
           sudo apt update -qq
-          # 启用 Team Kodi PPA（针对 Ubuntu 24.04 Noble）
-          sudo add-apt-repository ppa:team-xbmc/ppa -y
-          sudo apt update -qq
-          # 安装核心构建工具 + Kodi addon 开发包（取代 libkodiplatform-dev）
           sudo apt install -y cmake build-essential ninja-build pkg-config git \
-                              kodi-addons-dev libtinyxml-dev \
-                              rapidjson-dev zlib1g-dev libcurl4-openssl-dev
+                              libtinyxml-dev rapidjson-dev zlib1g-dev libcurl4-openssl-dev
 
-      # 关键：使用插件自己的 CMakeLists.txt 独立构建（不是 Kodi 源码那套）
-      - name: Build with Ninja
+      # 新增：手动构建并安装 Kodi 开发依赖（替换 kodi-addons-dev）
+      - name: Build and install Kodi dev headers
+        run: |
+          # 克隆 Kodi Omega 分支（只取必要部分，避免全量下载）
+          git clone --branch Omega --depth 1 --recursive https://github.com/xbmc/xbmc.git
+          cd xbmc
+          
+          # 构建 kodi-platform（提供 libkodiplatform 和头文件）
+          mkdir -p tools/depends/target/kodi-platform/build && cd tools/depends/target/kodi-platform
+          ../../bootstrap --host=x86_64-linux-gnu
+          make -j$(nproc)
+          sudo make install
+          
+          # 构建并安装 addon headers（/usr/include/kodi/*）
+          cd ../../../../
+          mkdir build && cd build
+          cmake .. -DCOMPILE_ADDONS=0 -DENABLE_EVENTCLIENTS=0 -DENABLE_LIRC=0 -DCMAKE_BUILD_TYPE=MinSizeRel
+          make -C project/cmake/addons/depends project/cmake/addons/depends/install install
+          sudo make -C project/cmake/addons/depends project/cmake/addons/depends/install install
+          
+          cd ../..
+
+      - name: Build pvr.iptvsimple with Ninja
         run: |
           mkdir build && cd build
           cmake .. -G Ninja \
                    -DCMAKE_BUILD_TYPE=Release \
                    -DBUILD_SHARED_LIBS=1 \
-                   -DUSE_LTO=1
+                   -DUSE_LTO=1 \
+                   -DKODI_ADDON_API_LEVEL=21
           ninja
 
-      # 生成 zip（官方脚本会自动把依赖写好）
       - name: Package ZIP
         run: |
           cd build
@@ -47,5 +60,6 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: pvr.iptvsimple-21.11.0-Omega-${{ runner.os }}
+          name: pvr.iptvsimple-21.11.0-Omega-linux
           path: build/pvr.iptvsimple-*.zip
+          retention-days: 30
