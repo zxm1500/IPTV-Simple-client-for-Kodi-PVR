@@ -37,7 +37,8 @@ jobs:
           mkdir -p build && cd build
           
           # 官方文档方式，禁用 Wayland
-          cmake -DADDONS_TO_BUILD=pvr.iptvsimple \
+          cmake -G Ninja \
+                -DADDONS_TO_BUILD=pvr.iptvsimple \
                 -DADDON_SRC_PREFIX=../.. \
                 -DCMAKE_BUILD_TYPE=Release \
                 -DCMAKE_INSTALL_PREFIX=../../xbmc/addons \
