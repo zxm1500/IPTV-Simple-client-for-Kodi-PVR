@@ -46,7 +46,7 @@ jobs:
           
           # 使用 ninja 或 make 都可以
           ninja pvr.iptvsimple
-          ninja package   # <- 生成 zip
+          ninja package
       
           echo "=== Search zip ==="
           find . -name "pvr.iptvsimple-*.zip" -ls
