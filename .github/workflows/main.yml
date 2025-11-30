@@ -53,16 +53,16 @@ jobs:
           cpack -G ZIP || true
 
       # 关键一步：把真实生成的 zip 挖出来（支持所有可能的路径）
-      - name: 找到并复制 zip
+      - name: 找到并复制 zip（强制全局搜索，绝不漏掉）
         run: |
-          echo "正在查找生成的 zip 文件…"
-          find . -type f -name "pvr.iptvsimple-*.zip" -ls
-  
+          echo "=== 开始全局搜索 pvr.iptvsimple zip ==="
+          find /home/runner -type f -name "pvr.iptvsimple-*.zip" -ls 2>/dev/null
+
           mkdir -p ~/artifacts
-          find . -type f -name "pvr.iptvsimple-*.zip" -exec cp {} ~/artifacts/ \;
-  
-          echo "已复制到 artifacts："
-          ls -lh ~/artifacts/
+          find /home/runner -type f -name "pvr.iptvsimple-*.zip" -exec cp {} ~/artifacts/ \; 2>/dev/null
+
+          echo "=== ~/artifacts 最终内容 ==="
+          ls -la ~/artifacts/
   
       - name: 上传 zip（用固定前缀，永不漏掉）
         uses: actions/upload-artifact@v4
