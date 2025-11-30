@@ -67,7 +67,7 @@ jobs:
       - name: 上传 zip（用固定前缀，永不漏掉）
         uses: actions/upload-artifact@v4
         with:
-          name: pvr.iptvsimple-${{ steps.tag.outputs.tag }}-Omega
+          name: pvr.iptvsimple-${{ steps.latest_tag.outputs.tag }}-Omega
           path: ~/artifacts/
           if-no-files-found: error
   
