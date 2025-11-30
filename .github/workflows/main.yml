@@ -47,7 +47,6 @@ jobs:
           
           # 使用 ninja 或 make 都可以
           ninja
-          ninja package
       
           echo "=== Search zip ==="
           find . -name "pvr.iptvsimple-*.zip" -ls
@@ -58,5 +57,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pvr.iptvsimple-Omega
-          path: pvr.iptvsimple/build/**/pvr.iptvsimple-*.zip
+          path: pvr.iptvsimple/build/addons/build/pvr.iptvsimple/*.zip
 
