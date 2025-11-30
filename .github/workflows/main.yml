@@ -33,7 +33,6 @@ jobs:
           autoconf \
           libtool \
           pkg-config \
-          # TexturePacker 所需
           liblzo2-dev \
           libpng-dev \
           zlib1g-dev \
@@ -41,7 +40,6 @@ jobs:
           libjpeg-dev \
           libtinyxml2-dev \
           libuuid-dev \
-          # 通用依赖（部分插件可能需要）
           libcurl4-openssl-dev \
           libpugixml-dev \
           libfmt-dev \
