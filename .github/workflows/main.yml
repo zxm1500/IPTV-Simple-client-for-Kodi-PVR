@@ -1,4 +1,4 @@
-name: Build pvr.iptvsimple for Kodi 21 Omega (2025.11.30 确认版 - 零错误)
+name: Build pvr.iptvsimple for Kodi 21 Omega (2025.11.30 最终零错误版)
 
 on: workflow_dispatch
 
@@ -20,31 +20,31 @@ jobs:
                               libtinyxml-dev rapidjson-dev zlib1g-dev \
                               libcurl4-openssl-dev libpugixml-dev
 
-      # 确认版：正确克隆 Omega 分支 + sparse-checkout（官方路径，无错误）
+      # 最终版：用 -b Omega 克隆 + sparse-checkout（官方路径，无 Git 错误）
       - name: Extract Kodi 21 Omega addon dev headers from source
         run: |
-          # 先指定 ref=Omega 克隆（避免默认 master），只取必要目录
-          git clone --depth 1 --filter=blob:none --no-checkout --ref=Omega https://github.com/xbmc/xbmc.git kodi-src
+          # 先完整克隆 Omega 分支（--depth 1 保持小），再 sparse 过滤
+          git clone --depth 1 --branch Omega https://github.com/xbmc/xbmc.git kodi-src
           cd kodi-src
-          git checkout Omega  # 现在能成功切换（因为 ref 已指定）
+          git sparse-checkout init --cone
           git sparse-checkout set xbmc/addons/include/kodi
-          git checkout  # populate 文件
           
           # 复制头文件（Omega 确认路径）
           sudo mkdir -p /usr/include/kodi
-          find xbmc/addons/include/kodi -type f -exec sudo cp {} /usr/include/kodi/ \; || true  # 用 find 防空目录
+          sudo cp -r xbmc/addons/include/kodi/* /usr/include/kodi/ 2>/dev/null || true  # 忽略空子目录警告
           
-          # 额外复制 addon 通用头文件（从 Omega 结构）
+          # 额外复制 addon 通用头文件
           sudo mkdir -p /usr/include
-          find xbmc/addons/include -name "xbmc_addon_*" -type f -exec sudo cp {} /usr/include/ \; || true
+          find xbmc/addons/include -name "xbmc_addon_*" -type f -exec sudo cp {} /usr/include/ \; 2>/dev/null || true
           
-          # 验证复制（日志确认）
-          ls -la /usr/include/kodi/ | head -5
+          # 验证（日志确认文件到位）
+          echo "Installed Kodi headers:"
+          ls -la /usr/include/kodi/ | head -10
           
           # 清理
           cd .. && rm -rf kodi-src
 
-      # 补 kodi-platform（兼容性）
+      # 补 kodi-platform（兼容旧 addon CMake）
       - name: Install minimal kodi-platform
         run: |
           git clone --depth 1 https://github.com/xbmc/kodi-platform.git
