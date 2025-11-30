@@ -22,10 +22,20 @@ jobs:
         ref: 21.11.0-Omega
         path: addons/pvr.iptvsimple
 
-    - name: Install build deps
+    - name: 安装依赖
       run: |
         sudo apt update -qq
-        sudo apt install -y build-essential cmake ninja-build git
+        sudo apt install -y \
+          build-essential \
+          cmake \
+          ninja-build \
+          git \
+          autoconf \
+          libtool \
+          pkg-config \
+          liblzo2-dev \
+          liblzo2-2
+
 
     - name: Build addon
       run: |
