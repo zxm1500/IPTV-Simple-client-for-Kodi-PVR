@@ -40,17 +40,17 @@ jobs:
 
         make -j$(nproc)
 
-        # 关键：Kodi addon 真正的打包命令是这个！
-        make pvr.iptvsimple-package
+        # 真正生成 zip 的命令就是这一行！！！
+        make pvr.iptvsimple
 
-        echo "=== 生成的 zip ==="
-        find . -name "*.zip" -ls
+        echo "生成成功！zip 位置如下："
+        find . -name "pvr.iptvsimple-*.zip" -ls
 
-    - name: 复制生成的 zip
+    - name: 复制 zip 到 artifacts
       run: |
         mkdir -p ~/artifacts
         find pvr.iptvsimple -name "pvr.iptvsimple-*.zip" -exec cp {} ~/artifacts/ \;
-        echo "最终文件："
+        echo "最终 artifacts："
         ls -lh ~/artifacts/
 
     - name: 上传
