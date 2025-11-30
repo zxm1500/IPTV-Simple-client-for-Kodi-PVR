@@ -50,16 +50,14 @@ jobs:
           libx11-dev libxext-dev libxrender-dev wayland-protocols
     
         # 安装 waylandpp
-        git clone --branch v0.3 https://github.com/waylandpp/waylandpp.git
-        cd waylandpp
+        curl -L https://github.com/waylandpp/waylandpp/archive/refs/tags/v0.3.tar.gz | tar xz
+        cd waylandpp-0.3
         mkdir build && cd build
         cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local
         make -j$(nproc)
         sudo make install
         sudo ldconfig
-    
-        # 设置全局环境变量，供下一步 CMake 使用
-        echo "PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH" >> $GITHUB_ENV
+
           
     - name: Build addon
       run: |
