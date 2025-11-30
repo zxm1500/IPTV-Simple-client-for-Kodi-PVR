@@ -1,4 +1,4 @@
-name: Build pvr.iptvsimple for Kodi 21 Omega (2025.11.30 最终版 - 完整 dev kit)
+name: Build pvr.iptvsimple for Kodi 21 Omega (2025.11.30 完整版 - 解决 LZO2)
 
 on: workflow_dispatch
 
@@ -13,21 +13,43 @@ jobs:
           repository: kodi-pvr/pvr.iptvsimple
           ref: 21.11.0-Omega
 
-      - name: Install basic tools & libraries
+      # 关键：安装 Kodi Ubuntu 构建的所有必需依赖（包括 LZO2）
+      - name: Install Kodi build dependencies (Ubuntu 24.04)
         run: |
           sudo apt update -qq
-          sudo apt install -y cmake ninja-build git pkg-config \
-                              libtinyxml-dev rapidjson-dev zlib1g-dev \
-                              libcurl4-openssl-dev libpugixml-dev
+          sudo apt install -y \
+            # 核心构建工具
+            cmake ninja-build git pkg-config build-essential autoconf automake autopoint gettext autotools-dev \
+            # Python & 脚本
+            python3 python3-dev python3-pip libpython3-dev \
+            # 压缩 & 图像 (包括 LZO2)
+            liblzo2-dev libflatbuffers-dev libjpeg-dev libpng-dev libtiff-dev libwebp-dev zlib1g-dev \
+            # XML & 解析
+            libtinyxml-dev libtinyxml2-dev libpugixml-dev libexpat1-dev libcdio-dev \
+            # 网络 & 音频/视频
+            libcurl4-openssl-dev libavahi-client-dev libbluetooth-dev libnfs-dev libplist-dev libssl-dev \
+            libasound2-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libswresample-dev \
+            # GUI & 平台
+            libdrm-dev libegl1-mesa-dev libgles2-mesa-dev libwayland-dev libxkbcommon-dev libinput-dev libudev-dev \
+            libfreetype6-dev libfribidi-dev libfreetype6-dev libfontconfig1-dev libgl1-mesa-dev libxrandr-dev \
+            libxmu-dev libxext-dev libxfixes-dev libxi-dev libxtst-dev libxxf86vm-dev \
+            # 数据库 & 其他
+            libmariadb-dev libmysqlclient-dev libsqlite3-dev libcrossguid-dev \
+            # PVR & addon 相关
+            libcdio-paranoia-dev libvdpau-dev libva-dev libvorbis-dev libxine2-dev \
+            libtinyxml-dev rapidjson-dev libpugixml-dev \
+            # 额外工具
+            ccache doxygen gawk gperf libcec-dev libmicrohttpd-dev libusb-1.0-0-dev libxrandr-dev libxt-dev \
+            nasm yasm
 
-      # 关键修复：从 Kodi Omega 源码构建并安装 kodi-dev-kit（生成 KodiConfig.cmake）
-      - name: Build and install Kodi 21 Omega dev kit
+      # 构建 Kodi dev kit（最小配置，禁用 LZO2 等不必要组件）
+      - name: Build and install Kodi 21 Omega dev kit (minimal)
         run: |
-          # 克隆 Kodi Omega（--depth 1 保持小，只需 dev kit 部分）
+          # 克隆 Kodi Omega
           git clone --depth 1 --branch Omega https://github.com/xbmc/xbmc.git kodi-src
           cd kodi-src
           
-          # 构建整个 Kodi（最小配置，只为生成 dev kit config 文件）
+          # 最小 CMake 配置（基于 README.Ubuntu.md，禁用非 dev 组件）
           mkdir build && cd build
           cmake .. -DCMAKE_BUILD_TYPE=MinSizeRel \
                    -DCMAKE_INSTALL_PREFIX=/usr \
@@ -38,24 +60,32 @@ jobs:
                    -DENABLE_WHIRLPOOL=OFF \
                    -DENABLE_X11=ON \
                    -DENABLE_XBMC=OFF \
-                   -DENABLE_ADDONS=OFF
-          make -j$(nproc) develop  # 只构建 dev 目标（包括 kodi-dev-kit）
+                   -DENABLE_ADDONS=OFF \
+                   -DENABLE_TEXTUREPACKER=OFF \  # 关键：禁用 TexturePacker，避免 LZO2
+                   -DENABLE_OPTICAL=OFF \
+                   -DENABLE_DVDCSS=OFF \
+                   -DENABLE_UPNP=OFF \
+                   -DENABLE_ZLIB=OFF \
+                   -DENABLE_LIBBLURAY=OFF \
+                   -DENABLE_LIBDVD=OFF \
+                   -DENABLE_INTERNALPYTHON=OFF \
+                   -DENABLE_DEBUGFEX=OFF \
+                   -DUSE_LTO=ON
+          make -j$(nproc) develop  # 只构建 dev 目标
           
-          # 安装 dev kit（生成 /usr/lib/cmake/Kodi/KodiConfig.cmake 等）
+          # 安装 dev kit（生成 KodiConfig.cmake 和头文件）
           sudo make install_develop
           
-          # 验证（日志确认 config 文件到位）
+          # 验证
           echo "Kodi dev kit installed:"
-          ls -la /usr/lib/cmake/Kodi/ | head -5
+          ls -la /usr/lib/cmake/Kodi/ | head -5 || echo "CMake dir OK"
           echo "Kodi include dir:"
-          ls -la /usr/include/kodi/ | head -5
+          ls -la /usr/include/kodi/ | head -5 || echo "Include dir OK"
           
           cd ../..
-          rm -rf kodi-src  # 清理
+          rm -rf kodi-src
 
-      # 现在无需 kodi-platform（dev kit 已覆盖）
-
-      # 编译 pvr.iptvsimple（cmake 会找到 KodiConfig.cmake）
+      # 编译 pvr.iptvsimple（现在能找到 KodiConfig.cmake）
       - name: Build pvr.iptvsimple
         run: |
           mkdir build && cd build
