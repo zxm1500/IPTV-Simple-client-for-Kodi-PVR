@@ -1,4 +1,4 @@
-name: Build pvr.iptvsimple for Kodi 21 Omega (最终版)
+name: Build pvr.iptvsimple for Kodi 21 Omega (2025 终极版 - 源代码头文件)
 
 on: workflow_dispatch
 
@@ -13,39 +13,49 @@ jobs:
           repository: kodi-pvr/pvr.iptvsimple
           ref: 21.11.0-Omega
 
-      - name: Install basic tools
+      - name: Install basic tools & libraries
         run: |
           sudo apt update -qq
           sudo apt install -y cmake ninja-build git pkg-config \
                               libtinyxml-dev rapidjson-dev zlib1g-dev \
                               libcurl4-openssl-dev libpugixml-dev
 
-      # 终极方案：只拉取 Kodi 官方提供的最小 dev 头文件（官方永远有效的镜像地址）
-      - name: Install Kodi 21 Omega addon dev headers (official minimal kit)
+      # 关键：从 Kodi Omega 源代码提取 addon 开发头文件（官方推荐方式，无 404）
+      - name: Extract Kodi 21 Omega addon dev headers from source
         run: |
-          # 官方提供的 21.x 通用的最小头文件包（不到 8MB，永远有效）
-          wget -q https://mirrors.kodi.tv/addons/omega/kodi-dev-kit/kodi-addon-dev-headers.tar.gz
-          sudo tar -xzf kodi-addon-dev-headers.tar.gz -C /usr/local
-          sudo ln -sf /usr/local/include/kodi /usr/include/kodi
+          # 只克隆必要目录（addons/include/kodi），超小超快
+          git clone --depth 1 --filter=blob:none --no-checkout https://github.com/xbmc/xbmc.git kodi-src
+          cd kodi-src
+          git sparse-checkout set addons/include/kodi
+          git checkout
+          
+          # 复制头文件到系统路径
+          sudo mkdir -p /usr/include/kodi
+          sudo cp -r addons/include/kodi/* /usr/include/kodi/
+          
+          # 清理
+          cd .. && rm -rf kodi-src
 
-      # 补一个最小的 kodi-platform（很多 addon 的 CMake 仍然会探测它）
+      # 补 kodi-platform（addon CMake 依赖它）
       - name: Install minimal kodi-platform
         run: |
           git clone --depth 1 https://github.com/xbmc/kodi-platform.git
           cd kodi-platform
           mkdir build && cd build
-          cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local -DBUILD_SHARED_LIBS=ON
+          cmake .. -DCMAKE_INSTALL_PREFIX=/usr -DBUILD_SHARED_LIBS=ON
           make -j$(nproc)
           sudo make install
+          cd ../.. && rm -rf kodi-platform
 
-      # 正式编译 pvr.iptvsimple
+      # 编译 pvr.iptvsimple
       - name: Build pvr.iptvsimple
         run: |
           mkdir build && cd build
           cmake .. -G Ninja \
                    -DCMAKE_BUILD_TYPE=Release \
                    -DBUILD_SHARED_LIBS=1 \
-                   -DUSE_LTO=1
+                   -DUSE_LTO=1 \
+                   -DKODI_ADDON_API_LEVEL=21  # 强制 Omega API
           ninja
 
       - name: Package ZIP
@@ -58,3 +68,4 @@ jobs:
         with:
           name: pvr.iptvsimple-21.11.0-Omega-linux-x64
           path: build/pvr.iptvsimple-*.zip
+          retention-days: 30
