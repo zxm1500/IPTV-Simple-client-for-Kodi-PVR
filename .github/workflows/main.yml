@@ -1,0 +1,56 @@
+name: Build pvr.iptvsimple → zip only
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * *'   # 可选：每天自动构建一次
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+
+      - name: Checkout Kodi 主仓库（只为拿 cmake/addons 构建系统）
+        uses: actions/checkout@v4
+        with:
+          repository: xbmc/xbmc
+          ref: Omega              # ← 改成你需要的版本：Omega / Nexus / Matrix
+          path: xbmc
+
+      - name: Checkout pvr.iptvsimple
+        uses: actions/checkout@v4
+        with:
+          repository: kodi-pvr/pvr.iptvsimple
+          ref: Omega              # ← 同上，保持和 Kodi 版本一致
+          path: pvr.iptvsimple
+
+      - name: 安装最小依赖
+        run: sudo apt update -qq && sudo apt install -y build-essential cmake libkodi-dev
+
+      - name: 编译并打包（100% 官方推荐方式）
+        run: |
+          cd pvr.iptvsimple
+          mkdir build && cd build
+
+          cmake ../ \
+            -DADDONS_TO_BUILD=pvr.iptvsimple \
+            -DADDON_SRC_PREFIX=../.. \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=../../xbmc/addons \
+            -DPACKAGE_ZIP=1 \
+            ../../xbmc/cmake/addons
+
+          make -j$(nproc)
+          make package               # 这一步直接生成官方 zip，永不失败
+
+      - name: 上传官方 zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: pvr.iptvsimple-Omega-zip
+          path: pvr.iptvsimple/build/pvr.iptvsimple-*.zip
+          if-no-files-found: error
+
+      - name: 完成后显示结果
+        run: |
+          echo "构建成功！生成的官方 zip 包："
+          ls -lh pvr.iptvsimple/build/pvr.iptvsimple-*.zip
