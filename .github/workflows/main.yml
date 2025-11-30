@@ -48,8 +48,10 @@ jobs:
           # 使用 ninja 或 make 都可以
           ninja
       
-          echo "=== Search zip ==="
-          find $(pwd) -path "*/addons/build/pvr.iptvsimple/pvr.iptvsimple-*.zip" -ls
+      - name: Package ZIP
+        run: |
+          cd xbmc/addons
+          zip -r ../../pvr.iptvsimple-Omega.zip pvr.iptvsimple
 
 
       # 5. 上传 zip
@@ -57,5 +59,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pvr.iptvsimple-Omega
-          path: pvr.iptvsimple/build/addons/build/pvr.iptvsimple/*.zip
+          path: pvr.iptvsimple-Omega.zip
+
 
