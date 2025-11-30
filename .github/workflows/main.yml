@@ -19,7 +19,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: kodi-pvr/pvr.iptvsimple
-        ref: 21.3-Omega
+        ref: 21.11.0-Omega
         path: pvr.iptvsimple
 
     - name: 安装依赖
