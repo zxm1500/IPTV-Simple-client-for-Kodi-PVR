@@ -1,4 +1,4 @@
-name: Build pvr.iptvsimple for Kodi 21 Omega (2025.11.30 最终零错误版)
+name: Build pvr.iptvsimple for Kodi 21 Omega (2025.11.30 最终版 - 完整 dev kit)
 
 on: workflow_dispatch
 
@@ -20,42 +20,42 @@ jobs:
                               libtinyxml-dev rapidjson-dev zlib1g-dev \
                               libcurl4-openssl-dev libpugixml-dev
 
-      # 最终版：用 -b Omega 克隆 + sparse-checkout（官方路径，无 Git 错误）
-      - name: Extract Kodi 21 Omega addon dev headers from source
+      # 关键修复：从 Kodi Omega 源码构建并安装 kodi-dev-kit（生成 KodiConfig.cmake）
+      - name: Build and install Kodi 21 Omega dev kit
         run: |
-          # 先完整克隆 Omega 分支（--depth 1 保持小），再 sparse 过滤
+          # 克隆 Kodi Omega（--depth 1 保持小，只需 dev kit 部分）
           git clone --depth 1 --branch Omega https://github.com/xbmc/xbmc.git kodi-src
           cd kodi-src
-          git sparse-checkout init --cone
-          git sparse-checkout set xbmc/addons/include/kodi
           
-          # 复制头文件（Omega 确认路径）
-          sudo mkdir -p /usr/include/kodi
-          sudo cp -r xbmc/addons/include/kodi/* /usr/include/kodi/ 2>/dev/null || true  # 忽略空子目录警告
-          
-          # 额外复制 addon 通用头文件
-          sudo mkdir -p /usr/include
-          find xbmc/addons/include -name "xbmc_addon_*" -type f -exec sudo cp {} /usr/include/ \; 2>/dev/null || true
-          
-          # 验证（日志确认文件到位）
-          echo "Installed Kodi headers:"
-          ls -la /usr/include/kodi/ | head -10
-          
-          # 清理
-          cd .. && rm -rf kodi-src
-
-      # 补 kodi-platform（兼容旧 addon CMake）
-      - name: Install minimal kodi-platform
-        run: |
-          git clone --depth 1 https://github.com/xbmc/kodi-platform.git
-          cd kodi-platform
+          # 构建整个 Kodi（最小配置，只为生成 dev kit config 文件）
           mkdir build && cd build
-          cmake .. -DCMAKE_INSTALL_PREFIX=/usr -DBUILD_SHARED_LIBS=ON
-          make -j$(nproc)
-          sudo make install
-          cd ../.. && rm -rf kodi-platform
+          cmake .. -DCMAKE_BUILD_TYPE=MinSizeRel \
+                   -DCMAKE_INSTALL_PREFIX=/usr \
+                   -DCORE_PLATFORM_NAME=gbm \
+                   -DENABLE_EVENTCLIENTS=OFF \
+                   -DENABLE_LIRC=OFF \
+                   -DENABLE_SCREENSAVER=OFF \
+                   -DENABLE_WHIRLPOOL=OFF \
+                   -DENABLE_X11=ON \
+                   -DENABLE_XBMC=OFF \
+                   -DENABLE_ADDONS=OFF
+          make -j$(nproc) develop  # 只构建 dev 目标（包括 kodi-dev-kit）
+          
+          # 安装 dev kit（生成 /usr/lib/cmake/Kodi/KodiConfig.cmake 等）
+          sudo make install_develop
+          
+          # 验证（日志确认 config 文件到位）
+          echo "Kodi dev kit installed:"
+          ls -la /usr/lib/cmake/Kodi/ | head -5
+          echo "Kodi include dir:"
+          ls -la /usr/include/kodi/ | head -5
+          
+          cd ../..
+          rm -rf kodi-src  # 清理
 
-      # 编译 pvr.iptvsimple
+      # 现在无需 kodi-platform（dev kit 已覆盖）
+
+      # 编译 pvr.iptvsimple（cmake 会找到 KodiConfig.cmake）
       - name: Build pvr.iptvsimple
         run: |
           mkdir build && cd build
