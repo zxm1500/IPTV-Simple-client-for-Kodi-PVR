@@ -25,7 +25,7 @@ jobs:
     - name: 安装依赖
       run: sudo apt update -qq && sudo apt install -y build-essential cmake git
 
-    - name: 编译 + 生成 zip（用官方 make package，避免 cpack 路径错误）
+    - name: 编译 + 生成 zip（唯一真正靠谱的方法）
       run: |
         cd pvr.iptvsimple
         mkdir -p build && cd build
@@ -40,17 +40,18 @@ jobs:
 
         make -j$(nproc)
 
-        # 官方方式：用 make package 自动调用 cpack（不会路径错乱）
-        make package
+        # 关键：Kodi addon 真正的打包命令是这个！
+        make pvr.iptvsimple
 
-        # 确认生成的 zip 位置
+        # zip 就在这里生成
+        echo "=== 生成的 zip 文件 ==="
         find . -name "pvr.iptvsimple-*.zip" -ls
 
-    - name: 复制 zip 到 artifacts
+    - name: 复制生成的 zip
       run: |
         mkdir -p ~/artifacts
-        cp pvr.iptvsimple/build/pvr.iptvsimple-*.zip ~/artifacts/
-        echo "生成的文件："
+        find pvr.iptvsimple -name "pvr.iptvsimple-*.zip" -exec cp {} ~/artifacts/ \;
+        echo "最终文件："
         ls -lh ~/artifacts/
 
     - name: 上传
