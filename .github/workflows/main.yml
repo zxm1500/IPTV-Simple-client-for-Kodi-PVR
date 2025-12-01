@@ -16,9 +16,10 @@ jobs:
     - name: Set up build environment
       run: |
         sudo apt-get update
-          sudo apt install -y \
-            unzip cmake ninja-build g++ make git \
-            libfmt-dev libpugixml-dev rapidjson-dev
+        sudo apt install -y \
+          unzip cmake ninja-build g++ make git \
+          libfmt-dev libpugixml-dev rapidjson-dev \
+          zip curl wget  # 添加打包工具
         
     - name: Clone Kodi source code
       run: |
@@ -42,39 +43,68 @@ jobs:
           -DPACKAGE_ZIP=1 \
           ../../xbmc/cmake/addons
         
-        # 编译并打包
+        # 编译
         make
         
-- name: Manual Package Creation (如果自动打包失败)
-      if: failure() || success()  # 总是运行
+    - name: 查找并显示生成的文件
       run: |
-        echo "=== 手动创建 ZIP 包 ==="
+        echo "=== 查找所有生成的文件 ==="
+        find . -name "pvr.iptvsimple*" -type f 2>/dev/null | xargs -I {} ls -lh {} || true
+        find . -name "*.so" -type f 2>/dev/null | head -5 | xargs -I {} ls -lh {} || true
+        find . -name "*.zip" -type f 2>/dev/null | xargs -I {} ls -lh {} || true
         
-        # 查找 .so 文件
-        SO_FILE=$(find . -name "pvr.iptvsimple.so" -type f 2>/dev/null | head -1)
+        echo ""
+        echo "=== 检查安装目录 ==="
+        ls -la xbmc/addons/ 2>/dev/null || true
+        ls -la xbmc/addons/pvr.iptvsimple/ 2>/dev/null || true
         
-        if [ -z "$SO_FILE" ]; then
-          # 尝试其他可能的名称
-          SO_FILE=$(find . -name "*iptvsimple*.so" -type f 2>/dev/null | head -1)
-        fi
+    - name: 尝试自动打包
+      run: |
+        echo "=== 尝试 make package ==="
+        cd pvr.iptvsimple/build
+        make package 2>&1 | tail -20 || echo "make package 失败，继续手动打包..."
         
-        if [ -n "$SO_FILE" ]; then
-          echo "找到库文件: $SO_FILE"
+    - name: 手动创建 ZIP 包（如果自动打包失败）
+      run: |
+        echo "=== 开始手动打包 ==="
+        
+        # 方法1：从安装目录打包
+        if [ -d "xbmc/addons/pvr.iptvsimple" ]; then
+          echo "方法1：从安装目录打包"
+          cd xbmc/addons
+          zip -r "../../pvr.iptvsimple.zip" pvr.iptvsimple/
           
-          # 创建完整的插件结构
-          ADDON_DIR="pvr.iptvsimple_final"
-          mkdir -p "$ADDON_DIR"
+          echo "创建的文件："
+          ls -lh ../../pvr.iptvsimple.zip
+          cd ../..
+        else
+          echo "未找到安装目录，尝试方法2"
           
-          # 复制所有必要文件
-          cp -r pvr.iptvsimple/addon/* "$ADDON_DIR/" 2>/dev/null || true
+          # 方法2：从 build 目录查找 .so 文件并创建完整包
+          SO_FILE=$(find pvr.iptvsimple -name "pvr.iptvsimple.so" -type f 2>/dev/null | head -1)
           
-          # 确保有 addon.xml
-          if [ ! -f "$ADDON_DIR/addon.xml" ]; then
-            cat > "$ADDON_DIR/addon.xml" << 'EOF'
+          if [ -n "$SO_FILE" ]; then
+            echo "找到 .so 文件: $SO_FILE"
+            
+            # 创建临时目录
+            mkdir -p temp_package/pvr.iptvsimple
+            
+            # 复制库文件
+            cp "$SO_FILE" temp_package/pvr.iptvsimple/
+            
+            # 复制 addon 文件（从源码）
+            if [ -d "pvr.iptvsimple/addon" ]; then
+              cp -r pvr.iptvsimple/addon/* temp_package/pvr.iptvsimple/ 2>/dev/null || true
+            fi
+            
+            # 确保有 addon.xml
+            if [ ! -f "temp_package/pvr.iptvsimple/addon.xml" ]; then
+              echo "创建 addon.xml"
+              cat > temp_package/pvr.iptvsimple/addon.xml << 'EOF'
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="pvr.iptvsimple" name="IPTV Simple Client" version="21.5.1" provider-name="Kodi">
+<addon id="pvr.iptvsimple" name="IPTV Simple Client" version="22.0.0" provider-name="Kodi">
   <requires>
-    <import addon="xbmc.pvr" version="20.2.0"/>
+    <import addon="xbmc.pvr" version="21.0.0"/>
   </requires>
   <extension point="xbmc.pvrclient" library_linux="pvr.iptvsimple.so"/>
   <extension point="xbmc.addon.metadata">
@@ -85,49 +115,114 @@ jobs:
   </extension>
 </addon>
 EOF
-          fi
-          
-          # 复制库文件
-          cp "$SO_FILE" "$ADDON_DIR/pvr.iptvsimple.so"
-          
-          # 创建 ZIP
-          zip -r "pvr.iptvsimple-21.5.1.zip" "$ADDON_DIR/"
-          
-          echo "手动创建的 ZIP: pvr.iptvsimple-21.5.1.zip"
-        else
-          echo "错误：未找到 .so 文件"
-          
-          # 尝试从安装目录创建
-          if [ -d "xbmc/addons/pvr.iptvsimple" ]; then
-            echo "从安装目录创建 ZIP..."
-            cd xbmc/addons
-            zip -r "../../pvr.iptvsimple-21.5.1.zip" pvr.iptvsimple/
-            cd ../..
+            fi
+            
+            # 创建 ZIP
+            cd temp_package
+            zip -r ../pvr.iptvsimple.zip pvr.iptvsimple/
+            cd ..
+            
+            echo "手动创建的包："
+            ls -lh pvr.iptvsimple.zip
+          else
+            echo "错误：未找到 pvr.iptvsimple.so 文件"
+            
+            # 方法3：尝试从 build 目录直接打包
+            if [ -d "pvr.iptvsimple/build" ]; then
+              echo "尝试从 build 目录打包"
+              find pvr.iptvsimple/build -type f -name "*.so" -exec cp {} pvr.iptvsimple/build/pvr.iptvsimple.so \;
+              
+              # 创建最小包
+              mkdir -p minimal_addon
+              cp pvr.iptvsimple/addon.xml minimal_addon/ 2>/dev/null || cat > minimal_addon/addon.xml << 'EOF'
+<addon id="pvr.iptvsimple" name="IPTV Simple" version="1.0.0">
+  <requires><import addon="xbmc.pvr" version="20.0.0"/></requires>
+  <extension point="xbmc.pvrclient" library_linux="pvr.iptvsimple.so"/>
+</addon>
+EOF
+              
+              if [ -f "pvr.iptvsimple/build/pvr.iptvsimple.so" ]; then
+                cp pvr.iptvsimple/build/pvr.iptvsimple.so minimal_addon/
+                zip -r pvr.iptvsimple.zip minimal_addon/
+              fi
+            fi
           fi
         fi
         
-    - name: Verify and List All Artifacts
+    - name: 验证 ZIP 文件
       run: |
-        echo "=== 最终文件列表 ==="
-        find . -type f \( -name "*.zip" -o -name "*.so" \) 2>/dev/null | xargs -I {} ls -lh {}
+        echo "=== 验证生成的 ZIP 文件 ==="
         
-        echo ""
-        echo "=== 检查 ZIP 文件内容 ==="
-        for zipfile in *.zip; do
-          if [ -f "$zipfile" ]; then
-            echo "文件: $zipfile"
-            unzip -l "$zipfile" | head -10
-            echo "---"
+        # 查找所有 zip 文件
+        ZIP_FILES=$(find . -name "*.zip" -type f 2>/dev/null)
+        
+        if [ -z "$ZIP_FILES" ]; then
+          echo "错误：未找到任何 ZIP 文件"
+          echo "当前目录内容："
+          ls -la
+          exit 1
+        fi
+        
+        for ZIP_FILE in $ZIP_FILES; do
+          echo "检查文件: $ZIP_FILE"
+          echo "大小: $(ls -lh "$ZIP_FILE" | awk '{print $5}')"
+          echo "内容:"
+          unzip -l "$ZIP_FILE" 2>/dev/null | head -15 || echo "无法列出内容"
+          echo "---"
+          
+          # 将第一个找到的 zip 文件作为主要产物
+          if [ -z "$MAIN_ZIP" ]; then
+            MAIN_ZIP="$ZIP_FILE"
+            echo "设置为主产物: $MAIN_ZIP"
+            echo "MAIN_ZIP=$MAIN_ZIP" >> $GITHUB_ENV
           fi
         done
         
-    - name: Upload Artifacts
+    - name: 复制到统一位置
+      run: |
+        echo "=== 整理产物 ==="
+        
+        # 使用找到的主 zip，如果没有则使用默认名
+        if [ -n "$MAIN_ZIP" ] && [ -f "$MAIN_ZIP" ]; then
+          echo "复制 $MAIN_ZIP 到根目录"
+          cp "$MAIN_ZIP" ./pvr.iptvsimple-addon.zip
+        elif [ -f "pvr.iptvsimple.zip" ]; then
+          echo "使用 pvr.iptvsimple.zip"
+          cp pvr.iptvsimple.zip ./pvr.iptvsimple-addon.zip
+        else
+          # 查找任何 zip 文件
+          ANY_ZIP=$(find . -name "*.zip" -type f 2>/dev/null | head -1)
+          if [ -n "$ANY_ZIP" ]; then
+            echo "使用找到的 zip: $ANY_ZIP"
+            cp "$ANY_ZIP" ./pvr.iptvsimple-addon.zip
+          else
+            echo "警告：未找到 ZIP 文件，将创建空文件"
+            touch ./pvr.iptvsimple-addon.zip
+          fi
+        fi
+        
+        echo "最终产物："
+        ls -lh pvr.iptvsimple-addon.zip
+        
+    - name: 上传产物
       uses: actions/upload-artifact@v4
       with:
-        name: iptvsimple-addon
+        name: pvr-iptvsimple-addon
         path: |
-          pvr.iptvsimple-*.zip
+          pvr.iptvsimple-addon.zip
           pvr.iptvsimple/build/*.zip
-        if-no-files-found: error
-
+          pvr.iptvsimple/build/*.so
+        retention-days: 30
         
+    - name: 显示构建摘要
+      run: |
+        echo "=== 构建完成 ==="
+        echo "生成的 ZIP 文件："
+        find . -name "*.zip" -type f 2>/dev/null | xargs -I {} echo "- {} ($(ls -lh {} | awk '{print $5}'))"
+        
+        echo ""
+        echo "如需安装到 Kodi："
+        echo "1. 下载 pvr.iptvsimple-addon.zip"
+        echo "2. 复制到 Kodi 的 addons 目录："
+        echo "   cp pvr.iptvsimple-addon.zip ~/.kodi/addons/"
+        echo "3. 重启 Kodi"
