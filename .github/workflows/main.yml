@@ -40,22 +40,19 @@ jobs:
 
           make -j$(nproc)
 
-      - name: Manual zip (fallback)
+      - name: Package addon manually from output
         run: |
-          OUT=$(find addon-build -type d -path "*/addons/pvr.iptvsimple")
-
+          OUT=$(find . -type d -path "*/kodi-src/cmake/addons/output/addons/pvr.iptvsimple")
           echo "FOUND: $OUT"
+
           if [ -z "$OUT" ]; then
             echo "ERROR: addon folder not found!"
             exit 1
           fi
 
           ZIP_NAME="pvr.iptvsimple-$(date +%Y%m%d%H%M%S).zip"
+
           cd "$OUT/.."
           zip -r "../../$ZIP_NAME" pvr.iptvsimple
 
-      - name: Upload ZIP
-        uses: actions/upload-artifact@v4
-        with:
-          name: pvr.iptvsimple
-          path: addon-build/addons/*.zip
+          echo "ZIP saved to kodi-src/cmake/addons/output/$ZIP_NAME"
