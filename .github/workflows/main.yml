@@ -18,15 +18,18 @@ jobs:
             unzip cmake ninja-build g++ make git \
             libfmt-dev libpugixml-dev rapidjson-dev
 
-      - name: Clone Kodi (only for addon build system)
+      - name: Clone Kodi (addon build system)
         run: |
           git clone --depth 1 --branch Omega https://github.com/xbmc/xbmc.git kodi-src
-          cd kodi-src
-          git submodule update --init tools/depends
 
       - name: Clone pvr.iptvsimple
         run: |
           git clone --depth 1 --branch 21.11.0-Omega https://github.com/kodi-pvr/pvr.iptvsimple.git
+
+      - name: Put addon into Kodi addon source tree
+        run: |
+          mkdir -p kodi-src/cmake/addons/addons/pvr.iptvsimple
+          cp -r pvr.iptvsimple/* kodi-src/cmake/addons/addons/pvr.iptvsimple/
 
       - name: Build addon using Kodi's addon builder
         run: |
@@ -35,30 +38,22 @@ jobs:
 
           cmake ../kodi-src/cmake/addons \
             -DADDONS_TO_BUILD=pvr.iptvsimple \
-            -DADDON_SRC_PREFIX=../ \
             -DPACKAGE_ZIP=1
 
           make -j$(nproc)
-          
-      - name: Debug output structure
-        run: |
-          echo "==== DIRS ===="
-          find addon-build -maxdepth 6 -type d | sort
-          echo "==== FILES ===="
-          find addon-build -maxdepth 6 -type f | sort
-      
+
       - name: Find built addon zip
         run: |
           ZIP=$(find addon-build -type f -name "pvr.iptvsimple*.zip" | head -n 1)
           echo "FOUND ZIP: $ZIP"
-      
+
           if [ -z "$ZIP" ]; then
             echo "ERROR: No zip found!"
             exit 1
           fi
-      
+
           cp "$ZIP" addon-build/
-      
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
