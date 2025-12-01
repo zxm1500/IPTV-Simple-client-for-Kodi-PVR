@@ -8,9 +8,11 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      - name: Checkout
+      # Step 1: Checkout the repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Step 2: Install build dependencies
       - name: Install dependencies
         run: |
           sudo apt update
@@ -18,43 +20,34 @@ jobs:
             unzip cmake ninja-build g++ make git \
             libfmt-dev libpugixml-dev rapidjson-dev
 
-      - name: Clone Kodi (addon build system)
+      # Step 3: Clone Kodi source (addon build system)
+      - name: Clone Kodi source
         run: |
           git clone --depth 1 --branch Omega https://github.com/xbmc/xbmc.git kodi-src
 
-      - name: Clone pvr.iptvsimple addon
+      # Step 4: Clone pvr.iptvsimple addon
+      - name: Clone pvr.iptvsimple
         run: |
-          git clone --depth 1 --branch 21.11.0-Omega \
-            https://github.com/kodi-pvr/pvr.iptvsimple.git
+          git clone --depth 1 --branch 21.11.0-Omega https://github.com/kodi-pvr/pvr.iptvsimple.git
 
-      - name: Put addon into Kodi addon source tree (correct structure)
+      # Step 5: Build the addon using official instructions
+      - name: Build addon
         run: |
-          mkdir -p kodi-src/cmake/addons/addons
-          rm -rf kodi-src/cmake/addons/addons/pvr.iptvsimple
-          # 注意：官方仓库结构是正确的，因此整个目录直接拷进去
-          cp -R pvr.iptvsimple kodi-src/cmake/addons/addons/pvr.iptvsimple
-      
-      - name: Debug list Kodi addon definition directory
-        run: |
-          echo "==== CONTENT OF kodi-src/cmake/addons/addons ===="
-          find kodi-src/cmake/addons/addons -maxdepth 3 -type d | sort
-          echo "==== FILES ===="
-          find kodi-src/cmake/addons/addons -maxdepth 4 -type f | sort
-
-      - name: Build addon using Kodi's addon builder
-        run: |
-          mkdir -p addon-build
-          cd addon-build
-
-          cmake ../kodi-src/cmake/addons \
+          mkdir -p pvr.iptvsimple/build
+          cd pvr.iptvsimple/build
+          cmake \
             -DADDONS_TO_BUILD=pvr.iptvsimple \
-            -DPACKAGE_ZIP=1
-
+            -DADDON_SRC_PREFIX=../.. \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=../../kodi-src/addons \
+            -DPACKAGE_ZIP=1 \
+            ../../kodi-src/cmake/addons
           make -j$(nproc)
 
+      # Step 6: Find the generated zip
       - name: Find built addon zip
         run: |
-          ZIP=$(find addon-build -type f -name "pvr.iptvsimple*.zip" | head -n 1)
+          ZIP=$(find pvr.iptvsimple/build/zips -type f -name "pvr.iptvsimple*.zip" | head -n 1)
           echo "FOUND ZIP: $ZIP"
 
           if [ -z "$ZIP" ]; then
@@ -62,8 +55,9 @@ jobs:
             exit 1
           fi
 
+      # Step 7: Upload the zip as artifact
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: pvr.iptvsimple
-          path: addon-build/build/zips/pvr.iptvsimple/*.zip
+          path: pvr.iptvsimple/build/zips/*.zip
