@@ -46,26 +46,160 @@ jobs:
         # 编译
         make
         
-    - name: 查找生成的 .so 文件
+    - name: 检查安装目录
       run: |
-        echo "=== 查找生成的 .so 文件 ==="
+        echo "=== 检查安装目录 ==="
         
-        # 首先在 build 目录中查找
-        echo "1. 在 pvr.iptvsimple/build 中查找:"
-        find pvr.iptvsimple/build -type f -name "*.so" 2>/dev/null | while read file; do
-          echo "找到: $file"
-          ls -lh "$file"
-        done || true
+        # 检查 xbmc/addons/pvr.iptvsimple 目录
+        if [ -d "xbmc/addons/pvr.iptvsimple" ]; then
+          echo "✅ 找到安装目录: xbmc/addons/pvr.iptvsimple"
+          echo "目录内容:"
+          ls -la xbmc/addons/pvr.iptvsimple/
+          
+          echo ""
+          echo "文件详情:"
+          find xbmc/addons/pvr.iptvsimple -type f -name "*" | while read file; do
+            echo "- $file ($(ls -lh "$file" | awk '{print $5}'))"
+          done
+        else
+          echo "❌ 未找到安装目录"
+          exit 1
+        fi
+        
+    - name: 从安装目录创建 ZIP 包
+      run: |
+        echo "=== 从安装目录创建 ZIP 包 ==="
+        
+        # 检查是否缺少 pvr.iptvsimple.so（无版本号）
+        if [ ! -f "xbmc/addons/pvr.iptvsimple/pvr.iptvsimple.so" ]; then
+          echo "创建符号链接 pvr.iptvsimple.so..."
+          cd xbmc/addons/pvr.iptvsimple
+          
+          # 查找带版本号的 .so 文件
+          VERSIONED_SO=$(ls pvr.iptvsimple.so.* 2>/dev/null | head -1)
+          if [ -n "$VERSIONED_SO" ]; then
+            echo "创建链接: $VERSIONED_SO -> pvr.iptvsimple.so"
+            ln -sf "$VERSIONED_SO" pvr.iptvsimple.so
+          fi
+          cd ../../..
+        fi
+        
+        # 创建 ZIP 包
+        echo "创建 ZIP 包..."
+        cd xbmc/addons
+        zip -r "../../pvr.iptvsimple-22.6.1.zip" pvr.iptvsimple/
+        cd ../..
+        
+        echo "✅ 创建的 ZIP 包:"
+        ls -lh pvr.iptvsimple-22.6.1.zip
+        
+        # 设置环境变量
+        echo "ZIP_FILE=pvr.iptvsimple-22.6.1.zip" >> $GITHUB_ENV
+        
+    - name: 验证 ZIP 文件
+      run: |
+        echo "=== 验证 ZIP 文件 ==="
+        
+        if [ -f "${{ env.ZIP_FILE }}" ]; then
+          echo "✅ ZIP 文件: ${{ env.ZIP_FILE }}"
+          echo "大小: $(ls -lh "${{ env.ZIP_FILE }}" | awk '{print $5}')"
+          
+          echo ""
+          echo "ZIP 文件内容:"
+          unzip -l "${{ env.ZIP_FILE }}"
+          
+          echo ""
+          echo "检查关键文件:"
+          if unzip -l "${{ env.ZIP_FILE }}" | grep -q "addon.xml"; then
+            echo "✅ 包含 addon.xml"
+            echo ""
+            echo "addon.xml 内容:"
+            unzip -p "${{ env.ZIP_FILE }}" pvr.iptvsimple/addon.xml | head -20
+          else
+            echo "❌ 缺少 addon.xml"
+          fi
+          
+          echo ""
+          if unzip -l "${{ env.ZIP_FILE }}" | grep -q "pvr.iptvsimple.so"; then
+            echo "✅ 包含 pvr.iptvsimple.so"
+          else
+            echo "⚠️ 注意: 可能只有带版本号的 .so 文件"
+            unzip -l "${{ env.ZIP_FILE }}" | grep "\.so" || true
+          fi
+        else
+          echo "❌ 错误：未找到 ZIP 文件"
+          exit 1
+        fi
+        
+    - name: 创建兼容性 ZIP（如果需要）
+      run: |
+        echo "=== 创建兼容性 ZIP ==="
+        
+        # 检查原始 ZIP 是否包含无版本号的 .so 文件
+        if ! unzip -l "${{ env.ZIP_FILE }}" | grep -q "pvr.iptvsimple.so[^.]"; then
+          echo "创建包含无版本号 .so 文件的兼容 ZIP..."
+          
+          # 创建临时目录
+          mkdir -p temp_extract
+          unzip "${{ env.ZIP_FILE }}" -d temp_extract/
+          
+          # 进入提取的目录
+          cd temp_extract/pvr.iptvsimple
+          
+          # 查找带版本号的 .so 文件
+          VERSIONED_SO=$(ls pvr.iptvsimple.so.* 2>/dev/null | head -1)
+          if [ -n "$VERSIONED_SO" ]; then
+            echo "创建兼容链接: $VERSIONED_SO -> pvr.iptvsimple.so"
+            cp "$VERSIONED_SO" pvr.iptvsimple.so
+          fi
+          
+          # 返回并创建新的 ZIP
+          cd ../..
+          zip -r "pvr.iptvsimple-compatible.zip" temp_extract/pvr.iptvsimple/
+          
+          echo "✅ 创建的兼容 ZIP:"
+          ls -lh pvr.iptvsimple-compatible.zip
+          
+          # 清理
+          rm -rf temp_extract
+          
+          echo "COMPATIBLE_ZIP=pvr.iptvsimple-compatible.zip" >> $GITHUB_ENV
+        else
+          echo "原始 ZIP 已经包含无版本号的 .so 文件"
+        fi
+        
+    - name: 上传产物
+      uses: actions/upload-artifact@v4
+      with:
+        name: pvr-iptvsimple-addon
+        path: |
+          pvr.iptvsimple-*.zip
+          pvr.iptvsimple-compatible.zip
+        retention-days: 30
+        
+    - name: 显示构建摘要
+      run: |
+        echo "=== 构建完成 ==="
+        echo "版本: 22.6.1"
+        echo ""
+        echo "生成的文件:"
+        
+        # 列出所有 ZIP 文件
+        for zipfile in *.zip; do
+          if [ -f "$zipfile" ]; then
+            echo "- $zipfile ($(ls -lh "$zipfile" | awk '{print $5}'))"
+            echo "  内容摘要:"
+            unzip -l "$zipfile" | grep -E "(addon\.xml|\.so)" | head -5
+          fi
+        done
         
         echo ""
-        echo "2. 在整个工作区查找:"
-        find . -type f -name "*iptvsimple*.so*" 2>/dev/null | while read file; do
-          echo "找到: $file"
-          ls -lh "$file"
-        done || true
-        
-        echo ""
-        echo "3. 查找所有 .so 文件:"
-        find . -type f -name "*.so" 2>/dev/null | head -10 | while read file; do
-          echo "找到: $file ($(ls -lh "$file" | awk '{print $5}'))"
-        done || true
+        echo "安装说明:"
+        echo "1. 下载 pvr.iptvsimple-22.6.1.zip"
+        echo "2. 复制到 Kodi 的 addons 目录:"
+        echo "   cp pvr.iptvsimple-22.6.1.zip ~/.kodi/addons/"
+        echo "3. Kodi 会自动解压并安装"
+        echo "4. 在 Kodi 中启用:"
+        echo "   - 进入设置 → PVR 和 Live TV"
+        echo "   - 启用 '启用'"
+        echo "   - 选择 'IPTV Simple Client' 作为客户端"
