@@ -1,45 +1,92 @@
-name: Build pvr.iptvsimple only
+name: Build IPTV Simple PVR Addon
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch: # 允许手动触发
 
 jobs:
   build:
     runs-on: ubuntu-24.04
-
+    
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: |
-          sudo apt update
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+        
+    - name: Set up build environment
+      run: |
+        sudo apt-get update
           sudo apt install -y \
             unzip cmake ninja-build g++ make git \
             libfmt-dev libpugixml-dev rapidjson-dev
-
-      - name: Clone Kodi source
-        run: |
-          git clone --depth 1 --branch Omega https://github.com/xbmc/xbmc.git kodi-src
-
-      - name: Clone pvr.iptvsimple addon
-        run: |
-          git clone --depth 1 --branch 21.11.0-Omega https://github.com/kodi-pvr/pvr.iptvsimple.git
-
-      - name: Build addon
-        run: |
-          mkdir -p pvr.iptvsimple/build
-          cd pvr.iptvsimple/build
-          cmake \
-            -DADDONS_TO_BUILD=pvr.iptvsimple \
-            -DADDON_SRC_PREFIX=../.. \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX=../../kodi-src/addons \
-            -DPACKAGE_ZIP=1 \
-            ../../kodi-src/cmake/addons
-          make -j$(nproc)
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: pvr.iptvsimple
-          path: pvr.iptvsimple/build/zips/*.zip
+        
+    - name: Clone Kodi source code
+      run: |
+        git clone --depth 1 --branch master https://github.com/xbmc/xbmc.git
+        
+    - name: Clone IPTV Simple PVR addon
+      run: |
+        git clone --depth 1 https://github.com/kodi-pvr/pvr.iptvsimple.git
+        
+    - name: Build the addon
+      run: |
+        cd pvr.iptvsimple
+        mkdir -p build && cd build
+        
+        # 使用相对路径配置构建
+        cmake \
+          -DADDONS_TO_BUILD=pvr.iptvsimple \
+          -DADDON_SRC_PREFIX=../.. \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=../../xbmc/addons \
+          -DPACKAGE_ZIP=1 \
+          ../../xbmc/cmake/addons
+        
+        # 编译并打包
+        make
+        
+    - name: List generated files
+      run: |
+        echo "Generated files:"
+        find pvr.iptvsimple/build -name "*.zip" -type f
+        find pvr.iptvsimple/build -name "*.so" -type f
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: pvr-iptvsimple-addon
+        path: |
+          pvr.iptvsimple/build/*.zip
+          pvr.iptvsimple/build/addons/*/*.zip
+        retention-days: 7
+        
+    - name: Create release package
+      run: |
+        # 查找生成的zip文件
+        ZIP_FILE=$(find pvr.iptvsimple/build -name "*.zip" -type f | head -1)
+        
+        if [ -n "$ZIP_FILE" ]; then
+          # 复制并重命名文件
+          cp "$ZIP_FILE" pvr.iptvsimple.zip
+          
+          # 显示文件信息
+          echo "Generated addon file:"
+          ls -lh pvr.iptvsimple.zip
+          echo "File details:"
+          unzip -l pvr.iptvsimple.zip | head -20
+        else
+          echo "No zip file found!"
+          find pvr.iptvsimple/build -type f | head -20
+          exit 1
+        fi
+        
+    - name: Upload final addon zip
+      uses: actions/upload-artifact@v4
+      with:
+        name: pvr.iptvsimple-final
+        path: pvr.iptvsimple.zip
+        retention-days: 30
