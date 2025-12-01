@@ -1,10 +1,6 @@
 name: Build IPTV Simple PVR Addon
 
 on:
-  push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
   workflow_dispatch: # 允许手动触发
 
 jobs:
@@ -49,44 +45,89 @@ jobs:
         # 编译并打包
         make
         
-    - name: List generated files
+- name: Manual Package Creation (如果自动打包失败)
+      if: failure() || success()  # 总是运行
       run: |
-        echo "Generated files:"
-        find pvr.iptvsimple/build -name "*.zip" -type f
-        find pvr.iptvsimple/build -name "*.so" -type f
+        echo "=== 手动创建 ZIP 包 ==="
         
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: pvr-iptvsimple-addon
-        path: |
-          pvr.iptvsimple/build/*.zip
-          pvr.iptvsimple/build/addons/*/*.zip
-        retention-days: 7
+        # 查找 .so 文件
+        SO_FILE=$(find . -name "pvr.iptvsimple.so" -type f 2>/dev/null | head -1)
         
-    - name: Create release package
-      run: |
-        # 查找生成的zip文件
-        ZIP_FILE=$(find pvr.iptvsimple/build -name "*.zip" -type f | head -1)
-        
-        if [ -n "$ZIP_FILE" ]; then
-          # 复制并重命名文件
-          cp "$ZIP_FILE" pvr.iptvsimple.zip
-          
-          # 显示文件信息
-          echo "Generated addon file:"
-          ls -lh pvr.iptvsimple.zip
-          echo "File details:"
-          unzip -l pvr.iptvsimple.zip | head -20
-        else
-          echo "No zip file found!"
-          find pvr.iptvsimple/build -type f | head -20
-          exit 1
+        if [ -z "$SO_FILE" ]; then
+          # 尝试其他可能的名称
+          SO_FILE=$(find . -name "*iptvsimple*.so" -type f 2>/dev/null | head -1)
         fi
         
-    - name: Upload final addon zip
+        if [ -n "$SO_FILE" ]; then
+          echo "找到库文件: $SO_FILE"
+          
+          # 创建完整的插件结构
+          ADDON_DIR="pvr.iptvsimple_final"
+          mkdir -p "$ADDON_DIR"
+          
+          # 复制所有必要文件
+          cp -r pvr.iptvsimple/addon/* "$ADDON_DIR/" 2>/dev/null || true
+          
+          # 确保有 addon.xml
+          if [ ! -f "$ADDON_DIR/addon.xml" ]; then
+            cat > "$ADDON_DIR/addon.xml" << 'EOF'
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="pvr.iptvsimple" name="IPTV Simple Client" version="21.5.1" provider-name="Kodi">
+  <requires>
+    <import addon="xbmc.pvr" version="20.2.0"/>
+  </requires>
+  <extension point="xbmc.pvrclient" library_linux="pvr.iptvsimple.so"/>
+  <extension point="xbmc.addon.metadata">
+    <summary lang="en">IPTV Live TV and Radio PVR client</summary>
+    <description lang="en">Simple IPTV client for Kodi</description>
+    <platform>all</platform>
+    <license>GPL-2.0-or-later</license>
+  </extension>
+</addon>
+EOF
+          fi
+          
+          # 复制库文件
+          cp "$SO_FILE" "$ADDON_DIR/pvr.iptvsimple.so"
+          
+          # 创建 ZIP
+          zip -r "pvr.iptvsimple-21.5.1.zip" "$ADDON_DIR/"
+          
+          echo "手动创建的 ZIP: pvr.iptvsimple-21.5.1.zip"
+        else
+          echo "错误：未找到 .so 文件"
+          
+          # 尝试从安装目录创建
+          if [ -d "xbmc/addons/pvr.iptvsimple" ]; then
+            echo "从安装目录创建 ZIP..."
+            cd xbmc/addons
+            zip -r "../../pvr.iptvsimple-21.5.1.zip" pvr.iptvsimple/
+            cd ../..
+          fi
+        fi
+        
+    - name: Verify and List All Artifacts
+      run: |
+        echo "=== 最终文件列表 ==="
+        find . -type f \( -name "*.zip" -o -name "*.so" \) 2>/dev/null | xargs -I {} ls -lh {}
+        
+        echo ""
+        echo "=== 检查 ZIP 文件内容 ==="
+        for zipfile in *.zip; do
+          if [ -f "$zipfile" ]; then
+            echo "文件: $zipfile"
+            unzip -l "$zipfile" | head -10
+            echo "---"
+          fi
+        done
+        
+    - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: pvr.iptvsimple-final
-        path: pvr.iptvsimple.zip
-        retention-days: 30
+        name: iptvsimple-addon
+        path: |
+          pvr.iptvsimple-*.zip
+          pvr.iptvsimple/build/*.zip
+        if-no-files-found: error
+
+        
