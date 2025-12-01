@@ -28,8 +28,9 @@ jobs:
 
       - name: Put addon into Kodi addon source tree
         run: |
-          mkdir -p kodi-src/cmake/addons/addons/pvr.iptvsimple
-          cp -r pvr.iptvsimple/* kodi-src/cmake/addons/addons/pvr.iptvsimple/
+          rm -rf kodi-src/cmake/addons/addons/pvr.iptvsimple
+          mkdir -p kodi-src/cmake/addons/addons/
+          cp -R pvr.iptvsimple kodi-src/cmake/addons/addons/
 
       - name: Build addon using Kodi's addon builder
         run: |
