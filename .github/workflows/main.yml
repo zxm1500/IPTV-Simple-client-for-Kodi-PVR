@@ -56,3 +56,11 @@ jobs:
           zip -r "../../$ZIP_NAME" pvr.iptvsimple
 
           echo "ZIP saved to kodi-src/cmake/addons/output/$ZIP_NAME"
+
+      - name: Upload addon ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: pvr.iptvsimple
+          path: kodi-src/cmake/addons/output/*.zip
+          if-no-files-found: error
+
