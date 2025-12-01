@@ -22,23 +22,24 @@ jobs:
         run: |
           git clone --depth 1 --branch Omega https://github.com/xbmc/xbmc.git kodi-src
 
-      - name: Clone pvr.iptvsimple
+      - name: Clone pvr.iptvsimple addon
         run: |
-          git clone --depth 1 --branch 21.11.0-Omega https://github.com/kodi-pvr/pvr.iptvsimple.git
+          git clone --depth 1 --branch 21.11.0-Omega \
+            https://github.com/kodi-pvr/pvr.iptvsimple.git
 
-      - name: Put addon into Kodi addon source tree
+      - name: Put addon into Kodi addon source tree (correct structure)
         run: |
           mkdir -p kodi-src/cmake/addons/addons
           rm -rf kodi-src/cmake/addons/addons/pvr.iptvsimple
-          cp -R pvr.iptvsimple/pvr.iptvsimple kodi-src/cmake/addons/addons/
+          # 注意：官方仓库结构是正确的，因此整个目录直接拷进去
+          cp -R pvr.iptvsimple kodi-src/cmake/addons/addons/pvr.iptvsimple
       
       - name: Debug list Kodi addon definition directory
         run: |
           echo "==== CONTENT OF kodi-src/cmake/addons/addons ===="
           find kodi-src/cmake/addons/addons -maxdepth 3 -type d | sort
           echo "==== FILES ===="
-          find kodi-src/cmake/addons/addons -maxdepth 3 -type f | sort
-
+          find kodi-src/cmake/addons/addons -maxdepth 4 -type f | sort
 
       - name: Build addon using Kodi's addon builder
         run: |
@@ -61,10 +62,8 @@ jobs:
             exit 1
           fi
 
-          cp "$ZIP" addon-build/
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: pvr.iptvsimple
-          path: addon-build/*.zip
+          path: addon-build/build/zips/pvr.iptvsimple/*.zip
