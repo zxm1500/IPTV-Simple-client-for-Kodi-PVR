@@ -1,80 +1,61 @@
-name: Build pvr.iptvsimple for Kodi 21 Omega (源代码 dev kit - 2025.11.30 零错误版)
+name: Build pvr.iptvsimple only
 
-on: workflow_dispatch
+on:
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-24.04
 
     steps:
-      - name: Checkout pvr.iptvsimple
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          repository: kodi-pvr/pvr.iptvsimple
-          ref: 21.11.0-Omega
 
-      # 最小依赖列表（基于官方 README.Ubuntu.md，只 dev 必需，避免警告）
       - name: Install dependencies
         run: |
-          sudo apt update -qq
-          sudo apt install -y cmake ninja-build git pkg-config build-essential \
-            libtinyxml-dev rapidjson-dev zlib1g-dev libpugixml-dev \
-            liblzo2-dev libflatbuffers-dev libjpeg-dev libpng-dev \
-            libcurl4-openssl-dev libavahi-client-dev libssl-dev \
-            libasound2-dev libavcodec-dev libavformat-dev libavutil-dev \
-            libfreetype6-dev libfontconfig1-dev libgl1-mesa-dev libxrandr-dev \
-            libmariadb-dev libsqlite3-dev libcdio-dev libva-dev
+          sudo apt update
+          sudo apt install -y \
+            unzip cmake ninja-build g++ make git \
+            libfmt-dev libpugixml-dev rapidjson-dev
 
-      # 源代码构建 Kodi dev kit（最小配置，只生成 KodiConfig.cmake + 头文件）
-      - name: Build Kodi 21 Omega dev kit from source
+      - name: Clone Kodi (only for addon build system)
         run: |
           git clone --depth 1 --branch Omega https://github.com/xbmc/xbmc.git kodi-src
           cd kodi-src
-          mkdir build && cd build
-          cmake .. \
-            -DCMAKE_BUILD_TYPE=MinSizeRel \
-            -DCMAKE_INSTALL_PREFIX=/usr \
-            -DCORE_PLATFORM_NAME=gbm \
-            -DENABLE_EVENTCLIENTS=OFF \
-            -DENABLE_LIRC=OFF \
-            -DENABLE_SCREENSAVER=OFF \
-            -DENABLE_X11=ON \
-            -DENABLE_ADDONS=OFF \
-            -DENABLE_TEXTUREPACKER=OFF \
-            -DENABLE_OPTICAL=OFF \
-            -DENABLE_UPNP=OFF \
-            -DENABLE_LIBBLURAY=OFF \
-            -DENABLE_INTERNALPYTHON=OFF \
-            -DUSE_LTO=ON
-          make -j$(nproc) develop
-          sudo make install_develop
-          # 验证（日志确认）
-          echo "KodiConfig.cmake:"
-          ls -la /usr/lib/cmake/Kodi/KodiConfig.cmake || echo "OK"
-          echo "Headers example:"
-          ls -la /usr/include/kodi/addon.h || echo "OK"
-          cd ../..
-          rm -rf kodi-src
+          git submodule update --init tools/depends
 
-      # 编译 pvr.iptvsimple
-      - name: Build pvr.iptvsimple
+      - name: Clone pvr.iptvsimple
         run: |
-          mkdir build && cd build
-          cmake .. -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DBUILD_SHARED_LIBS=1 \
-            -DUSE_LTO=1 \
-            -DKODI_ADDON_API_LEVEL=21
-          ninja
+          git clone --depth 1 --branch 21.11.0-Omega https://github.com/kodi-pvr/pvr.iptvsimple.git
 
-      - name: Package ZIP
+      - name: Build addon using Kodi's addon builder
         run: |
-          cd build
-          cpack -G ZIP
+          mkdir -p addon-build
+          cd addon-build
 
-      - name: Upload artifact
+          cmake ../kodi-src/cmake/addons \
+            -DADDONS_TO_BUILD=pvr.iptvsimple \
+            -DADDON_SRC_PREFIX=../ \
+            -DPACKAGE_ZIP=1
+
+          make -j$(nproc)
+
+      - name: Manual zip (fallback)
+        run: |
+          OUT=$(find addon-build -type d -path "*/addons/pvr.iptvsimple")
+
+          echo "FOUND: $OUT"
+          if [ -z "$OUT" ]; then
+            echo "ERROR: addon folder not found!"
+            exit 1
+          fi
+
+          ZIP_NAME="pvr.iptvsimple-$(date +%Y%m%d%H%M%S).zip"
+          cd "$OUT/.."
+          zip -r "../../$ZIP_NAME" pvr.iptvsimple
+
+      - name: Upload ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: pvr.iptvsimple-21.11.0-Omega-linux-x64
-          path: build/pvr.iptvsimple-*.zip
-          retention-days: 30
+          name: pvr.iptvsimple
+          path: addon-build/addons/*.zip
