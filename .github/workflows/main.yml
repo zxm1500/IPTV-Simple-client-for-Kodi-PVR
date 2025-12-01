@@ -30,7 +30,7 @@ jobs:
         run: |
           mkdir -p kodi-src/cmake/addons/addons
           rm -rf kodi-src/cmake/addons/addons/pvr.iptvsimple
-          cp -R pvr.iptvsimple kodi-src/cmake/addons/addons/
+          cp -R pvr.iptvsimple/pvr.iptvsimple kodi-src/cmake/addons/addons/
       
       - name: Debug list Kodi addon definition directory
         run: |
