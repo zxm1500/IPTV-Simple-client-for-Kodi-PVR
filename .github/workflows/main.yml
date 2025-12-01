@@ -39,41 +39,28 @@ jobs:
             -DPACKAGE_ZIP=1
 
           make -j$(nproc)
-
-      - name: Package addon manually from output
+          
+      - name: Debug output structure
         run: |
-          OUT=$(find addon-build -type d -path "*/kodi-src/cmake/addons/output/addons/pvr.iptvsimple")
-          echo "FOUND OUT: $OUT"
-
-          if [ -z "$OUT" ]; then
-            echo "ERROR: addon folder not found!"
+          echo "==== DIRS ===="
+          find addon-build -maxdepth 6 -type d | sort
+          echo "==== FILES ===="
+          find addon-build -maxdepth 6 -type f | sort
+      
+      - name: Find built addon zip
+        run: |
+          ZIP=$(find addon-build -type f -name "pvr.iptvsimple*.zip" | head -n 1)
+          echo "FOUND ZIP: $ZIP"
+      
+          if [ -z "$ZIP" ]; then
+            echo "ERROR: No zip found!"
             exit 1
           fi
-
-          ZIP_NAME="pvr.iptvsimple-$(date +%Y%m%d%H%M%S).zip"
-
-          cd "$OUT/.."
-          zip -r "../../$ZIP_NAME" pvr.iptvsimple
-
-          echo "==== DEBUG: LIST ALL DIRECTORIES ===="
-          find . -maxdepth 6 -type d
-
-          echo "==== DEBUG: LIST ALL FILES UNDER addon-build ===="
-          find addon-build -maxdepth 6 -type f | sort
-
-          echo "==== DEBUG: SEARCH pvr.iptvsimple directory ===="
-          find . -type d -name "pvr.iptvsimple"
-
-          echo "==== TRYING ALL POSSIBLE PATH PATTERNS ===="
-          find . -type d -path "*pvr.iptvsimple"
-          find addon-build -type d -path "*pvr.iptvsimple"
-          find kodi-src -type d -path "*pvr.iptvsimple"
-
-          echo "==== END DEBUG ===="
-
+      
+          cp "$ZIP" addon-build/
+      
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: pvr.iptvsimple
-          path: addon-build/kodi-src/cmake/addons/output/*.zip
-          if-no-files-found: error
+          path: addon-build/*.zip
