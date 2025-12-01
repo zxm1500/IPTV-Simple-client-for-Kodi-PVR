@@ -100,54 +100,21 @@ jobs:
             # 确保有 addon.xml
             if [ ! -f "temp_package/pvr.iptvsimple/addon.xml" ]; then
               echo "创建 addon.xml"
-              cat > temp_package/pvr.iptvsimple/addon.xml << 'EOF'
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="pvr.iptvsimple" name="IPTV Simple Client" version="22.0.0" provider-name="Kodi">
-  <requires>
-    <import addon="xbmc.pvr" version="21.0.0"/>
-  </requires>
-  <extension point="xbmc.pvrclient" library_linux="pvr.iptvsimple.so"/>
-  <extension point="xbmc.addon.metadata">
-    <summary lang="en">IPTV Live TV and Radio PVR client</summary>
-    <description lang="en">Simple IPTV client for Kodi</description>
-    <platform>all</platform>
-    <license>GPL-2.0-or-later</license>
-  </extension>
-</addon>
-EOF
+              # 使用 echo 命令逐行写入，避免 heredoc 缩进问题
+              echo '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' > temp_package/pvr.iptvsimple/addon.xml
+              echo '<addon id="pvr.iptvsimple" name="IPTV Simple Client" version="22.0.0" provider-name="Kodi">' >> temp_package/pvr.iptvsimple/addon.xml
+              echo '  <requires>' >> temp_package/pvr.iptvsimple/addon.xml
+              echo '    <import addon="xbmc.pvr" version="21.0.0"/>' >> temp_package/pvr.iptvsimple/addon.xml
+              echo '  </requires>' >> temp_package/pvr.iptvsimple/addon.xml
+              echo '  <extension point="xbmc.pvrclient" library_linux="pvr.iptvsimple.so"/>' >> temp_package/pvr.iptvsimple/addon.xml
+              echo '  <extension point="xbmc.addon.metadata">' >> temp_package/pvr.iptvsimple/addon.xml
+              echo '    <summary lang="en">IPTV Live TV and Radio PVR client</summary>' >> temp_package/pvr.iptvsimple/addon.xml
+              echo '    <description lang="en">Simple IPTV client for Kodi</description>' >> temp_package/pvr.iptvsimple/addon.xml
+              echo '    <platform>all</platform>' >> temp_package/pvr.iptvsimple/addon.xml
+              echo '    <license>GPL-2.0-or-later</license>' >> temp_package/pvr.iptvsimple/addon.xml
+              echo '  </extension>' >> temp_package/pvr.iptvsimple/addon.xml
+              echo '</addon>' >> temp_package/pvr.iptvsimple/addon.xml
             fi
-            
-            # 创建 ZIP
-            cd temp_package
-            zip -r ../pvr.iptvsimple.zip pvr.iptvsimple/
-            cd ..
-            
-            echo "手动创建的包："
-            ls -lh pvr.iptvsimple.zip
-          else
-            echo "错误：未找到 pvr.iptvsimple.so 文件"
-            
-            # 方法3：尝试从 build 目录直接打包
-            if [ -d "pvr.iptvsimple/build" ]; then
-              echo "尝试从 build 目录打包"
-              find pvr.iptvsimple/build -type f -name "*.so" -exec cp {} pvr.iptvsimple/build/pvr.iptvsimple.so \;
-              
-              # 创建最小包
-              mkdir -p minimal_addon
-              cp pvr.iptvsimple/addon.xml minimal_addon/ 2>/dev/null || cat > minimal_addon/addon.xml << 'EOF'
-<addon id="pvr.iptvsimple" name="IPTV Simple" version="1.0.0">
-  <requires><import addon="xbmc.pvr" version="20.0.0"/></requires>
-  <extension point="xbmc.pvrclient" library_linux="pvr.iptvsimple.so"/>
-</addon>
-EOF
-              
-              if [ -f "pvr.iptvsimple/build/pvr.iptvsimple.so" ]; then
-                cp pvr.iptvsimple/build/pvr.iptvsimple.so minimal_addon/
-                zip -r pvr.iptvsimple.zip minimal_addon/
-              fi
-            fi
-          fi
-        fi
         
     - name: 验证 ZIP 文件
       run: |
