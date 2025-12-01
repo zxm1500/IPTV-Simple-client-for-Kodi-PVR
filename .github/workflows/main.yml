@@ -55,8 +55,21 @@ jobs:
           cd "$OUT/.."
           zip -r "../../$ZIP_NAME" pvr.iptvsimple
 
-          echo "ZIP saved at:"
-          find addon-build -name "*.zip"
+          echo "==== DEBUG: LIST ALL DIRECTORIES ===="
+          find . -maxdepth 6 -type d
+
+          echo "==== DEBUG: LIST ALL FILES UNDER addon-build ===="
+          find addon-build -maxdepth 6 -type f | sort
+
+          echo "==== DEBUG: SEARCH pvr.iptvsimple directory ===="
+          find . -type d -name "pvr.iptvsimple"
+
+          echo "==== TRYING ALL POSSIBLE PATH PATTERNS ===="
+          find . -type d -path "*pvr.iptvsimple"
+          find addon-build -type d -path "*pvr.iptvsimple"
+          find kodi-src -type d -path "*pvr.iptvsimple"
+
+          echo "==== END DEBUG ===="
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
