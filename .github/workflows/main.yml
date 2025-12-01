@@ -25,7 +25,7 @@ jobs:
         run: |
           git clone --depth 1 --branch 21.11.0-Omega https://github.com/kodi-pvr/pvr.iptvsimple.git
 
-      - name: Build addon
+      - name: Build addon using Kodi's addon builder
         run: |
           mkdir -p pvr.iptvsimple/build
           cd pvr.iptvsimple/build
@@ -33,17 +33,19 @@ jobs:
             -DADDONS_TO_BUILD=pvr.iptvsimple \
             -DADDON_SRC_PREFIX=../.. \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX=../../kodi-src/addons \
+            -DCMAKE_INSTALL_PREFIX=../xbmc-addon \
             -DPACKAGE_ZIP=1 \
             ../../kodi-src/cmake/addons
           make -j$(nproc)
-          
+      
       - name: Find built addon zip
         run: |
           ZIP=$(find pvr.iptvsimple/build/zips -type f -name "pvr.iptvsimple*.zip" | head -n 1)
           echo "FOUND ZIP: $ZIP"
           if [ -z "$ZIP" ]; then
             echo "ERROR: No zip found!"
+            ls -R pvr.iptvsimple/build
             exit 1
           fi
           cp "$ZIP" pvr.iptvsimple/build/
+
