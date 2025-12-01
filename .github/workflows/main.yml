@@ -46,27 +46,26 @@ jobs:
         # 编译
         make
         
-    - name: 执行安装
+    - name: 查找生成的 .so 文件
       run: |
-        echo "=== 执行 make install 安装文件 ==="
-        cd pvr.iptvsimple/build
-        make install
+        echo "=== 查找生成的 .so 文件 ==="
+        
+        # 首先在 build 目录中查找
+        echo "1. 在 pvr.iptvsimple/build 中查找:"
+        find pvr.iptvsimple/build -type f -name "*.so" 2>/dev/null | while read file; do
+          echo "找到: $file"
+          ls -lh "$file"
+        done || true
         
         echo ""
-        echo "=== 安装后的文件 ==="
-        find ../../xbmc/addons -type f -name "*" 2>/dev/null | head -20
-        
-    - name: 查找生成的文件
-      run: |
-        echo "=== 查找所有生成的文件 ==="
-        
-        echo "1. 在 build 目录中查找:"
-        find pvr.iptvsimple/build -type f \( -name "*.so" -o -name "*.zip" \) 2>/dev/null | head -10 | xargs -I {} ls -lh {} || true
+        echo "2. 在整个工作区查找:"
+        find . -type f -name "*iptvsimple*.so*" 2>/dev/null | while read file; do
+          echo "找到: $file"
+          ls -lh "$file"
+        done || true
         
         echo ""
-        echo "2. 在安装目录中查找:"
-        find xbmc/addons -type f 2>/dev/null | head -20 | xargs -I {} ls -lh {} || true
-        
-        echo ""
-        echo "3. 在整个工作区查找 .so 文件:"
-        find . -name "pvr.iptvsimple.so*" -type f 2>/dev/null | xargs -I {} ls -lh {} || true
+        echo "3. 查找所有 .so 文件:"
+        find . -type f -name "*.so" 2>/dev/null | head -10 | while read file; do
+          echo "找到: $file ($(ls -lh "$file" | awk '{print $5}'))"
+        done || true
