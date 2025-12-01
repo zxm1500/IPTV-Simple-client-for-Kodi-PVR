@@ -42,8 +42,8 @@ jobs:
 
       - name: Package addon manually from output
         run: |
-          OUT=$(find . -type d -path "*/kodi-src/cmake/addons/output/addons/pvr.iptvsimple")
-          echo "FOUND: $OUT"
+          OUT=$(find addon-build -type d -path "*/kodi-src/cmake/addons/output/addons/pvr.iptvsimple")
+          echo "FOUND OUT: $OUT"
 
           if [ -z "$OUT" ]; then
             echo "ERROR: addon folder not found!"
@@ -55,11 +55,12 @@ jobs:
           cd "$OUT/.."
           zip -r "../../$ZIP_NAME" pvr.iptvsimple
 
-          echo "ZIP saved to kodi-src/cmake/addons/output/$ZIP_NAME"
+          echo "ZIP saved at:"
+          find addon-build -name "*.zip"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: pvr.iptvsimple
-          path: ${{ github.workspace }}/addon-build/kodi-src/cmake/addons/output/*.zip
+          path: addon-build/kodi-src/cmake/addons/output/*.zip
           if-no-files-found: error
