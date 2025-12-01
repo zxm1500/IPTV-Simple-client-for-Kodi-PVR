@@ -61,7 +61,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pvr.iptvsimple
-          path: ${{ github.workspace }}/kodi-src/cmake/addons/output/*.zip
+          path: ${{ github.workspace }}/addon-build/kodi-src/cmake/addons/output/*.zip
           if-no-files-found: error
-
-
