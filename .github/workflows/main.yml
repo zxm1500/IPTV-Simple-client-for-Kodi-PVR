@@ -37,10 +37,13 @@ jobs:
             -DPACKAGE_ZIP=1 \
             ../../kodi-src/cmake/addons
           make -j$(nproc)
-          make install
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: pvr.iptvsimple
-          path: kodi-src/addons/pvr.iptvsimple/build/zips/*.zip
+          
+      - name: Find built addon zip
+        run: |
+          ZIP=$(find pvr.iptvsimple/build/zips -type f -name "pvr.iptvsimple*.zip" | head -n 1)
+          echo "FOUND ZIP: $ZIP"
+          if [ -z "$ZIP" ]; then
+            echo "ERROR: No zip found!"
+            exit 1
+          fi
+          cp "$ZIP" pvr.iptvsimple/build/
