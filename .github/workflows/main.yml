@@ -57,10 +57,11 @@ jobs:
 
           echo "ZIP saved to kodi-src/cmake/addons/output/$ZIP_NAME"
 
-      - name: Upload addon ZIP
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: pvr.iptvsimple
-          path: kodi-src/cmake/addons/output/*.zip
+          path: ${{ github.workspace }}/kodi-src/cmake/addons/output/*.zip
           if-no-files-found: error
+
 
