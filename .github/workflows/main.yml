@@ -27,7 +27,7 @@ jobs:
         
     - name: Clone IPTV Simple PVR addon
       run: |
-        git clone --depth 1 https://github.com/kodi-pvr/pvr.iptvsimple.git
+        git clone --depth 1 --branch Omega https://github.com/kodi-pvr/pvr.iptvsimple.git
         
     - name: Build the addon
       run: |
